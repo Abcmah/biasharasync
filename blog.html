@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <style>
+        /* News Dome Header */
+.news-header-dome {
+    position: relative;
+    padding: 100px 0 140px;
+    text-align: center;
+    background: #303840;
+    color: white;
+    border-bottom-left-radius: 50% 15%;
+    border-bottom-right-radius: 50% 15%;
+    overflow: hidden;
+}
+
+.news-title { font-size: 48px; font-weight: 800; margin-bottom: 15px; }
+.news-subtitle { font-size: 18px; color: #94a3b8; }
+
+/* Main Section */
+.news-section { padding: 80px 0; background: #ffffff; margin-top: -60px; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+/* Featured Card */
+.featured-news-card {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    background: white;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+    margin-bottom: 60px;
+    border: 1px solid #f1f5f9;
+}
+
+.featured-image img { width: 100%; height: 100%; object-fit: cover; }
+.featured-content { padding: 50px; display: flex; flex-direction: column; justify-content: center; }
+
+/* Grid Styling */
+.news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+.news-item {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    transition: 0.3s;
+}
+.news-item:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+
+.news-item-image img { width: 100%; height: 220px; object-fit: cover; }
+.news-item-body { padding: 25px; }
+
+/* Labels & Tags */
+.news-category {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 15px;
+}
+
+.news-item-title { font-size: 20px; font-weight: 700; color: #303840; margin-bottom: 12px; line-height: 1.4; }
+.news-item-excerpt { color: #64748b; font-size: 15px; margin-bottom: 20px; line-height: 1.6; }
+
+/* Meta Info */
+.news-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 25px; }
+.author-img { width: 40px; height: 40px; border-radius: 50%; }
+.author-name { display: block; font-weight: 700; color: #303840; font-size: 14px; }
+.post-date { font-size: 13px; color: #94a3b8; }
+
+.read-more-btn {
+    background: #303840; color: white; padding: 12px 24px; border-radius: 10px;
+    text-decoration: none; font-weight: 700; align-self: flex-start; transition: 0.3s;
+}
+.read-more-btn:hover { background: #2563eb; }
+
+/* Responsive */
+@media (max-width: 992px) {
+    .featured-news-card { grid-template-columns: 1fr; }
+    .news-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+    .news-grid { grid-template-columns: 1fr; }
+    .news-title { font-size: 32px; }
+}
+    </style>
+    <section class="news-header-dome">
+    <div class="header-overlay"></div>
+    <div class="container relative-z">
+        <h1 class="news-title">News & Updates</h1>
+        <p class="news-subtitle">The latest features, industry insights, and BillTrack stories.</p>
+    </div>
+</section>
+
+<section class="news-section">
+    <div class="container">
+
+        <div class="featured-news-card">
+            <div class="featured-image">
+                <img src="https://via.placeholder.com/800x500" alt="Featured News">
+            </div>
+            <div class="featured-content">
+                <span class="news-category">Announcements</span>
+                <h2 class="featured-title">Introducing AI-Powered Invoice Automated Matching</h2>
+                <p class="featured-excerpt">We are excited to announce our biggest update yet. Save hours of manual entry with our new neural-link matching system...</p>
+                <div class="news-meta">
+                    <img src="https://via.placeholder.com/40x40" class="author-img" alt="Author">
+                    <div>
+                        <span class="author-name">Sarah Jenkins</span>
+                        <span class="post-date">Jan 24, 2026</span>
+                    </div>
+                </div>
+                <a href="#" class="read-more-btn">Read Full Update</a>
+            </div>
+        </div>
+
+        <div class="news-grid">
+            <article class="news-item">
+                <div class="news-item-image">
+                    <img src="https://via.placeholder.com/400x250" alt="News">
+                </div>
+                <div class="news-item-body">
+                    <span class="news-category">Feature Guide</span>
+                    <h3 class="news-item-title">5 Ways to Optimize Your Inventory Flow</h3>
+                    <p class="news-item-excerpt">Learn how top retailers use BillTrack to reduce overhead by 20% using smart tags...</p>
+                    <div class="news-item-footer">
+                        <span class="post-date">Jan 20, 2026</span>
+                        <a href="#" class="text-link">Read More →</a>
+                    </div>
+                </div>
+            </article>
+
+            <article class="news-item">
+                <div class="news-item-image">
+                    <img src="https://via.placeholder.com/400x250" alt="News">
+                </div>
+                <div class="news-item-body">
+                    <span class="news-category">Case Study</span>
+                    <h3 class="news-item-title">How TechCorp Scaled to $10M with BillTrack</h3>
+                    <p class="news-item-excerpt">A deep dive into the systems architecture that powered TechCorp's international expansion...</p>
+                    <div class="news-item-footer">
+                        <span class="post-date">Jan 18, 2026</span>
+                        <a href="#" class="text-link">Read More →</a>
+                    </div>
+                </div>
+            </article>
+
+            <article class="news-item">
+                <div class="news-item-image">
+                    <img src="https://via.placeholder.com/400x250" alt="News">
+                </div>
+                <div class="news-item-body">
+                    <span class="news-category">Security</span>
+                    <h3 class="news-item-title">Enhanced 2FA and Security Protocols</h3>
+                    <p class="news-item-excerpt">Your data security is our priority. See what we've added to keep your financial records safe...</p>
+                    <div class="news-item-footer">
+                        <span class="post-date">Jan 15, 2026</span>
+                        <a href="#" class="text-link">Read More →</a>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <div class="pagination">
+            <a href="#" class="page-link active">1</a>
+            <a href="#" class="page-link">2</a>
+            <a href="#" class="page-link">3</a>
+            <span class="page-dots">...</span>
+            <a href="#" class="page-link">Next →</a>
+        </div>
+    </div>
+</section>
+</body>
+</html>
