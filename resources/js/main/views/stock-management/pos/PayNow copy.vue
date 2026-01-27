@@ -1,125 +1,152 @@
 <template>
-    <a-drawer
-        :title="$t('payments.order_payment')"
-        :width="drawerWidth"
-        :maskClosable="false"
-        :open="visible"
-        @close="drawerClosed"
-        class="modern-payment-drawer"
-    >
-        <div class="checkout-layout">
-            <div class="summary-panel">
-                <div class="summary-card">
-                    <div class="summary-item">
-                        <span class="label">{{ $t('stock.total_items') }}</span>
-                        <span class="value">{{ selectedProducts.length }}</span>
-                    </div>
-                    <a-divider />
-                    <div class="summary-item">
-                        <span class="label">{{ $t('stock.payable_amount') }}</span>
-                        <span class="value total">{{ formatAmountCurrency(data.subtotal) }}</span>
-                    </div>
-                    <div class="summary-item highlight">
-                        <span class="label">{{ $t('stock.paying_amount') }}</span>
-                        <span class="value success">{{ formatAmountCurrency(totalEnteredAmount) }}</span>
-                    </div>
-                    <div class="summary-item status-box" :class="totalEnteredAmount < data.subtotal ? 'due' : 'change'">
-                        <span class="label">
-                            {{ totalEnteredAmount <= data.subtotal ? $t('payments.due_amount') : $t('stock.change_return') }}
-                        </span>
-                        <span class="value">
-                            {{ formatAmountCurrency(Math.abs(data.subtotal - totalEnteredAmount)) }}
-                        </span>
-                    </div>
-                </div>
+    <a-drawer :title="$t('payments.order_payment')" :width="drawerWidth" :maskClosable="false" :open="visible"
+        @close="drawerClosed">
+        <a-row>
+            <a-col :xs="24" :sm="24" :md="8" :lg="8">
+                <a-row>
+                    <a-col :span="24">
+                        <a-statistic :title="$t('stock.total_items')" :value="selectedProducts.length"
+                            style="margin-right: 50px" />
+                    </a-col>
+                    <a-col :span="24" class="mt-20">
+                        <a-statistic :title="$t('stock.paying_amount')"
+                            :value="formatAmountCurrency(totalEnteredAmount)" />
+                    </a-col>
+                    <a-col :span="24" class="mt-20">
+                        <a-statistic :title="$t('stock.payable_amount')" :value="formatAmountCurrency(data.subtotal)" />
+                    </a-col>
+                    <a-col :span="24" class="mt-20">
+                        <a-statistic v-if="totalEnteredAmount <= data.subtotal" :title="$t('payments.due_amount')"
+                            :value="formatAmountCurrency(data.subtotal - totalEnteredAmount)
+                                " />
+                        <a-statistic v-else :title="$t('stock.change_return')" :value="formatAmountCurrency(totalEnteredAmount - data.subtotal)
+                            " />
+                    </a-col>
+                </a-row>
+            </a-col>
+            <a-col :xs="24" :sm="24" :md="16" :lg="16">
+                <a-row>
+                    <a-col :span="24">
+                        <PaymentMethods @select="selectMode" @mpesa="openMpesa" />
+                    </a-col>
 
-                <div class="sidebar-actions mt-24" v-if="!showAddForm">
-                    <a-button block type="primary" size="large" class="action-btn checkout-btn" @click="completeOrder">
-                        {{ $t("stock.complete_order") }}
-                        <template #icon><RightOutlined /></template>
-                    </a-button>
-                    <a-button block size="large" class="action-btn add-btn mt-12" @click="() => (showAddForm = true)">
-                        <template #icon><PlusOutlined /></template>
-                        {{ $t("payments.add") }}
-                    </a-button>
-                </div>
-            </div>
-
-            <div class="controls-panel">
-                <div class="section-header">
-                    <h3>{{ showAddForm ? $t('payments.add') : $t('payments.payment_mode') }}</h3>
-                    <a-button v-if="showAddForm" type="link" @click="goBack" class="back-link">
-                        <LeftOutlined /> {{ $t("common.back") }}
-                    </a-button>
-                </div>
-
-                <div v-if="!showAddForm" class="payment-methods-wrapper">
-                    <PaymentMethods @select="selectMode" @mpesa="openMpesa" />
-
-                    <div class="table-section mt-24">
-                        <h4 class="sub-title">Recent Transactions</h4>
-                        <a-table
-                            :dataSource="allPaymentRecords"
-                            :columns="paymentRecordsColumns"
-                            :pagination="false"
-                            class="modern-table"
-                        >
+                </a-row>
+                <a-row :gutter="[24, 24]">
+                    <a-col :span="24" v-if="!showAddForm">
+                        <a-row :gutter="[16, 8]" class="mt-20">
+                            <a-col :xs="24" :sm="24" :md="10" :lg="10">
+                                <a-button :block="true" type="primary" @click="() => (showAddForm = true)">
+                                    <PlusOutlined />
+                                    {{ $t("payments.add") }}
+                                </a-button>
+                            </a-col>
+                            <a-col :xs="24" :sm="24" :md="10" :lg="10">
+                                <a-button :block="true" @click="completeOrder">
+                                    {{ $t("stock.complete_order") }}
+                                    <RightOutlined />
+                                </a-button>
+                            </a-col>
+                        </a-row>
+                    </a-col>
+                    <a-col :span="24" v-else>
+                        <a-row>
+                            <a-col :xs="24" :sm="24" :md="10" :lg="10">
+                                <a-button :block="true" type="primary" @click="goBack">
+                                    <LeftOutlined />
+                                    {{ $t("common.back") }}
+                                </a-button>
+                            </a-col>
+                        </a-row>
+                    </a-col>
+                    <a-col :span="24" v-if="!showAddForm">
+                        <a-table :dataSource="allPaymentRecords" :columns="paymentRecordsColumns" :pagination="false">
                             <template #bodyCell="{ column, record }">
                                 <template v-if="column.dataIndex === 'payment_mode'">
-                                    <span class="mode-tag">{{ getPaymentModeName(record.payment_mode_id) }}</span>
+                                    {{ getPaymentModeName(record.payment_mode_id) }}
                                 </template>
                                 <template v-if="column.dataIndex === 'amount'">
-                                    <span class="amount-text">{{ formatAmountCurrency(record.amount) }}</span>
+                                    {{ formatAmountCurrency(record.amount) }}
                                 </template>
                                 <template v-if="column.dataIndex === 'action'">
-                                    <a-button type="text" danger @click="deletePayment(record.id)">
-                                        <template #icon><DeleteOutlined /></template>
+                                    <a-button type="primary" @click="deletePayment(record.id)" danger>
+                                        <template #icon>
+                                            <DeleteOutlined />
+                                        </template>
                                     </a-button>
                                 </template>
                             </template>
                         </a-table>
-                    </div>
-                </div>
+                    </a-col>
+                    <a-col :span="24" v-else>
+                        <a-form layout="vertical">
+                            <a-row :gutter="16">
+                                <a-col :xs="24" :sm="24" :md="12" :lg="12">
+                                    <a-form-item :label="$t('payments.payment_mode')" name="payment_mode_id" :help="rules.payment_mode_id
+                                        ? rules.payment_mode_id.message
+                                        : null
+                                        " :validateStatus="rules.payment_mode_id ? 'error' : null
+                                            ">
+                                        <a-select v-model:value="formData.payment_mode_id" :placeholder="$t('common.select_default_text', [
+                                            $t('payments.payment_mode'),
+                                        ])
+                                            " :allowClear="true">
+                                            <a-select-option v-for="paymentMode in paymentModes" :key="paymentMode.xid"
+                                                :value="paymentMode.xid">
+                                                {{ paymentMode.name }}
+                                            </a-select-option>
+                                        </a-select>
+                                    </a-form-item>
+                                </a-col>
+                                <a-col :xs="24" :sm="24" :md="12" :lg="12">
+                                    <a-form-item :label="$t('stock.paying_amount')" name="amount"
+                                        :help="rules.amount ? rules.amount.message : null"
+                                        :validateStatus="rules.amount ? 'error' : null">
+                                        <a-input :prefix="appSetting.currency.symbol" v-model:value="formData.amount"
+                                            :placeholder="$t('common.placeholder_default_text', [
+                                                $t('stock.payable_amount'),
+                                            ])
+                                                " />
+                                        <small style="color: #7c8db5 !important">
+                                            {{ $t("stock.payable_amount") }}
+                                            <span>
+                                                {{ formatAmountCurrency(data.subtotal) }}
+                                            </span>
+                                        </small>
+                                    </a-form-item>
+                                </a-col>
+                            </a-row>
+                            <a-row :gutter="16">
+                                <a-col :xs="24" :sm="24" :md="24" :lg="24">
+                                    <a-form-item :label="$t('payments.notes')" name="notes"
+                                        :help="rules.notes ? rules.notes.message : null"
+                                        :validateStatus="rules.notes ? 'error' : null">
+                                        <a-textarea v-model:value="formData.notes" :placeholder="$t('payments.notes')"
+                                            :rows="5" />
+                                    </a-form-item>
+                                </a-col>
+                            </a-row>
+                            <a-row :gutter="16">
+                                <a-col :xs="24" :sm="24" :md="24" :lg="24">
+                                    <a-button type="primary" :loading="loading" @click="onSubmit" block>
+                                        <template #icon>
+                                            <CheckOutlined />
+                                        </template>
+                                        {{ $t("common.add") }}
+                                    </a-button>
+                                </a-col>
+                            </a-row>
+                        </a-form>
+                    </a-col>
+                </a-row>
+            </a-col>
+        </a-row>
 
-                <div v-else class="form-wrapper">
-                    <a-form layout="vertical" class="payment-form">
-                        <a-row :gutter="16">
-                            <a-col :span="12">
-                                <a-form-item :label="$t('payments.payment_mode')">
-                                    <a-select v-model:value="formData.payment_mode_id" size="large">
-                                        <a-select-option v-for="mode in paymentModes" :key="mode.xid" :value="mode.xid">
-                                            {{ mode.name }}
-                                        </a-select-option>
-                                    </a-select>
-                                </a-form-item>
-                            </a-col>
-                            <a-col :span="12">
-                                <a-form-item :label="$t('stock.paying_amount')">
-                                    <a-input-number
-                                        v-model:value="formData.amount"
-                                        size="large"
-                                        style="width: 100%"
-                                        :prefix="appSetting.currency.symbol"
-                                    />
-                                </a-form-item>
-                            </a-col>
-                            <a-col :span="24">
-                                <a-form-item :label="$t('payments.notes')">
-                                    <a-textarea v-model:value="formData.notes" :rows="3" />
-                                </a-form-item>
-                            </a-col>
-                        </a-row>
-                        <a-button type="primary" size="large" block @click="onSubmit" :loading="loading">
-                            Confirm Payment
-                        </a-button>
-                    </a-form>
-                </div>
-            </div>
-        </div>
+        <!-- MPESA MODAL -->
 
-        <MpesaModal ref="mpesaStkPushModal" :visible="mpesaVisible" :amount="data.subtotal" @send="sendMpesa" @close="mpesaVisible = false" />
+        <MpesaModal ref="mpesaStkPushModal"  @cancelPolling="stopPolling" :visible="mpesaVisible" :amount="data.subtotal" @send="sendMpesa" @close="mpesaVisible = false" />
     </a-drawer>
 </template>
+
 <script>
 import { ref, onMounted, computed } from "vue";
 import {
@@ -417,108 +444,4 @@ export default {
 };
 </script>
 
-<style lang="less" scoped>
-.modern-payment-drawer {
-    :deep(.ant-drawer-body) { padding: 0; }
-}
-
-.checkout-layout {
-    display: flex;
-    height: 100%;
-    min-height: calc(100vh - 55px);
-}
-
-.summary-panel {
-    width: 300px;
-    background: #f9fafb;
-    border-right: 1px solid #f0f0f0;
-    padding: 24px;
-}
-
-.controls-panel {
-    flex: 1;
-    padding: 24px 40px;
-    background: #fff;
-}
-
-.summary-card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    border: 1px solid #f0f0f0;
-}
-
-.summary-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 12px;
-
-    .label { color: #8c8c8c; font-size: 13px; }
-    .value { font-weight: 600; color: #262626; }
-
-    &.highlight {
-        .label { color: #1890ff; }
-        .value { color: #1890ff; font-size: 16px; }
-    }
-
-    .total { font-size: 18px; color: #000; }
-}
-
-.status-box {
-    margin-top: 16px;
-    padding: 12px;
-    border-radius: 8px;
-    text-align: center;
-    flex-direction: column;
-
-    &.due { background: #fff1f0; border: 1px solid #ffa39e; .value { color: #f5222d; } }
-    &.change { background: #f6ffed; border: 1px solid #b7eb8f; .value { color: #52c41a; } }
-
-    .value { font-size: 20px; display: block; }
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    h3 { margin: 0; font-size: 20px; font-weight: 700; }
-}
-
-.action-btn {
-    height: 50px;
-    border-radius: 8px;
-    font-weight: 600;
-}
-
-.checkout-btn {
-    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
-}
-
-.mode-tag {
-    background: #e6f7ff;
-    color: #1890ff;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.amount-text { font-weight: 600; }
-
-.modern-table {
-    :deep(.ant-table-thead > tr > th) {
-        background: transparent;
-        border-bottom: 2px solid #f0f0f0;
-    }
-}
-
-.mt-24 { margin-top: 24px; }
-.mt-12 { margin-top: 12px; }
-
-@media (max-width: 768px) {
-    .checkout-layout { flex-direction: column; }
-    .summary-panel { width: 100%; border-right: none; border-bottom: 1px solid #f0f0f0; }
-}
-</style>
+<style></style>

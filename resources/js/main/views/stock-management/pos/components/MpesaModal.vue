@@ -3,7 +3,7 @@
         @keydown.esc="handleEscKey">
         <a-form v-if="state === 'input'" layout="vertical">
             <a-form-item label="Phone Number" extra="Enter number in format 2547XXXXXXXX">
-                <a-input v-model:value="phone" placeholder="2547XXXXXXXX" :disabled="processing" ref="phoneInput" />
+                <a-input @pressEnter="send" size="medium" v-model:value="phone" placeholder="2547XXXXXXXX" :disabled="processing" ref="phoneInput" />
             </a-form-item>
 
             <a-alert type="info" :message="`Total Amount: KES ${amount}`" show-icon />
@@ -29,8 +29,8 @@
             <a-result :status="paymentSuccess ? 'success' : 'error'"
                 :title="paymentSuccess ? 'Payment Successful!' : 'Payment Failed'" :sub-title="resultMessage">
                 <template #extra>
-                    <a-button type="primary" @click="handleClose">Close</a-button>
-                    <a-button v-if="!paymentSuccess" @click="resetForm">Try Again</a-button>
+                    <a-button size="large" type="primary" @click="handleClose">Close</a-button>
+                    <a-button size="large" v-if="!paymentSuccess" @click="resetForm">Try Again</a-button>
                 </template>
             </a-result>
         </div>

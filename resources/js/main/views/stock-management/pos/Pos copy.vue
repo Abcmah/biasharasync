@@ -1,60 +1,27 @@
 <template>
-    <!-- <header class="pos-header"> -->
-
-    <div class="pos-header-container">
-        <div class="header-left">
-            <a-button type="text" class="back-btn" @click="() => $router.go(-1)">
-                <template #icon>
-                    <ArrowLeftOutlined />
-                </template>
-            </a-button>
-
-            <div class="header-titles">
-                <h1 class="pos-title">{{ $t('menu.pos') }}</h1>
-                <a-breadcrumb separator="•" class="modern-breadcrumb">
-                    <a-breadcrumb-item>{{ $t(`menu.dashboard`) }}</a-breadcrumb-item>
-                    <a-breadcrumb-item>{{ $t(`menu.stock_management`) }}</a-breadcrumb-item>
-                    <a-breadcrumb-item class="active">{{ $t("menu.pos") }}</a-breadcrumb-item>
+    <a-card class="page-content-sub-header breadcrumb-left-border"
+        :bodyStyle="{ padding: '0px', margin: '0px 16px 0' }">
+        <a-row>
+            <a-col :span="24">
+                <a-page-header :title="$t('menu.pos')" @back="() => $router.go(-1)" class="p-0" />
+            </a-col>
+            <a-col :span="24">
+                <a-breadcrumb separator="-" style="font-size: 12px">
+                    <a-breadcrumb-item>
+                        <router-link :to="{ name: 'admin.dashboard.index' }">
+                            {{ $t(`menu.dashboard`) }}
+                        </router-link>
+                    </a-breadcrumb-item>
+                    <a-breadcrumb-item>
+                        {{ $t(`menu.stock_management`) }}
+                    </a-breadcrumb-item>
+                    <a-breadcrumb-item>
+                        {{ $t("menu.pos") }}
+                    </a-breadcrumb-item>
                 </a-breadcrumb>
-            </div>
-        </div>
-        <div class="header-center">
-            <div class="pos-clock">
-                <span class="time">{{ currentTime }}</span>
-                <span class="date">{{ currentDate }}</span>
-            </div>
-        </div>
-        <div class="header-right">
-            <a-space :size="12">
-                <a-tooltip title="Keyboard Shortcuts (?)">
-                    <a-button @click="helpVisible = true" class="action-icon-btn">
-                        <template #icon>
-                            <QuestionCircleOutlined />
-                        </template>
-                    </a-button>
-                </a-tooltip>
-
-                <a-tooltip :title="isFullScreen ? 'Exit Fullscreen' : 'Enter Fullscreen'">
-                    <a-button @click="toggleFullScreen" class="action-icon-btn">
-                        <template #icon>
-                            <FullscreenExitOutlined v-if="isFullScreen" />
-                            <FullscreenOutlined v-else />
-                        </template>
-                    </a-button>
-                </a-tooltip>
-
-                <a-divider type="vertical" />
-
-                <a-button type="primary" danger ghost @click="() => $router.push({ name: 'admin.dashboard.index' })">
-                    <template #icon>
-                        <LogoutOutlined />
-                    </template>
-                    Exit POS
-                </a-button>
-            </a-space>
-        </div>
-    </div>
-
+            </a-col>
+        </a-row>
+    </a-card>
 
     <a-form layout="vertical">
         <a-row v-if="innerWidth >= 768" :gutter="[8, 8]" class="mt-5" style="margin: 10px 16px 0">
@@ -88,9 +55,8 @@
                                 <a-row class="mt-10 mb-10">
                                     <a-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
                                         <span style="display: flex">
-                                            <a-select ref="productSearchInput" :value="null"
-                                                :searchValue="orderSearchTerm" show-search :filter-option="false"
-                                                :placeholder="$t('product.search_scan_product')
+                                            <a-select :value="null" :searchValue="orderSearchTerm" show-search
+                                                :filter-option="false" :placeholder="$t('product.search_scan_product')
                                                     " style="width: 100%" :not-found-content="productFetching ? undefined : null
                                                         " @search="
                                                             (searchedValue) => {
@@ -187,8 +153,8 @@
                             </div>
                         </a-card>
                     </div>
-                    <div class="pos-footer-bar">
-                        <!-- <a-card> -->
+                    <div class="pos-left-footer">
+                        <a-card>
                             <div class="bill-footer">
                                 <a-row :gutter="[16, 16]">
                                     <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="8">
@@ -240,69 +206,55 @@
                                     </a-col>
                                 </a-row>
                             </div>
-                        <!-- </a-card> -->
-                        <div class="footer-top-actions">
-                            <div class="left-meta">
-                                <span class="meta-item">
-                                    <strong>{{ $t("product.tax") }}:</strong> {{
+                        </a-card>
+
+                        <div class="pos-footer-bar">
+                            <div class="footer-top-actions">
+                                <div class="left-meta">
+                                    <span class="meta-item">
+                                        <strong>{{ $t("product.tax") }}:</strong> {{
                                         formatAmountCurrency(formData.tax_amount) }}
-                                </span>
-                                <a-divider type="vertical" />
-                                <span class="meta-item">
-                                    <strong>{{ $t("product.discount") }}:</strong> {{
+                                    </span>
+                                    <a-divider type="vertical" />
+                                    <span class="meta-item">
+                                        <strong>{{ $t("product.discount") }}:</strong> {{
                                         formatAmountCurrency(formData.discount) }}
-                                </span>
-                            </div>
-                            <a-space>
-                                <a-button class="btn-quotation" @click="createQuotation">
-                                    <template #icon>
-                                        <FileTextOutlined />
-                                    </template>
-                                    {{ $t("stock.quotation") || 'Quotation' }}
-                                    <span class="shortcut-badge">F7</span>
-                                </a-button>
-
-                                <a-button class="btn-suspend" @click="suspendSale">
-                                    <template #icon>
-                                        <PauseCircleOutlined />
-                                    </template>
-                                    Suspend
-                                    <span class="shortcut-badge">F8</span>
-                                </a-button>
-
-                                <a-button class="btn-restore" @click="openSuspendedSales">
-                                    <template #icon>
-                                        <HistoryOutlined />
-                                    </template>
-                                    Restore
-                                    <span class="shortcut-badge">F9</span>
-                                </a-button>
-                            </a-space>
-                        </div>
-
-                        <div class="footer-main-row">
-                            <div class="grand-total-section">
-                                <span class="total-label">{{ $t("stock.grand_total") }}</span>
-                                <span class="total-amount">{{ formatAmountCurrency(formData.subtotal) }}</span>
-                            </div>
-
-                            <div class="checkout-section">
-                                <a-space :size="16">
-                                    <a-button @click="resetPos" danger type="text" size="large">
+                                    </span>
+                                </div>
+                                <a-space>
+                                    <a-button class="btn-suspend" @click="suspendSale">
+                                        <template #icon>
+                                            <PauseCircleOutlined />
+                                        </template>
+                                        Suspend
+                                    </a-button>
+                                    <a-button class="btn-restore" @click="openSuspendedSales">
+                                        <template #icon>
+                                            <HistoryOutlined />
+                                        </template>
+                                        Restore
+                                    </a-button>
+                                    <a-button @click="resetPos" danger type="text">
                                         {{ $t("stock.reset") }}
                                     </a-button>
+                                </a-space>
+                            </div>
 
+                            <div class="footer-main-row">
+                                <div class="grand-total-section">
+                                    <span class="total-label">{{ $t("stock.grand_total") }}</span>
+                                    <span class="total-amount">{{ formatAmountCurrency(formData.subtotal) }}</span>
+                                </div>
+
+                                <div class="checkout-section">
                                     <a-button type="primary" size="large" class="pay-now-btn"
                                         :disabled="formData.subtotal <= 0 || !formData.user_id" @click="payNow">
                                         <template #icon>
                                             <CreditCardOutlined />
                                         </template>
-                                        <div class="btn-content">
-                                            <span class="btn-text">{{ $t("stock.pay_now") }}</span>
-                                            <span class="btn-shortcut">F10</span>
-                                        </div>
+                                        {{ $t("stock.pay_now") }}
                                     </a-button>
-                                </a-space>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -708,15 +660,12 @@
             </template>
         </a-table>
     </a-modal>
-    <ShortcutModal @close-help-modal="closeHelpModal" :help-visible="helpVisible" />
+
 </template>
 
 <script>
 import { ref, onMounted, reactive, toRefs, nextTick, onUnmounted } from "vue";
-
 import {
-    ArrowLeftOutlined, FullscreenOutlined, FullscreenExitOutlined,
-    FileTextOutlined, PauseCircleOutlined, HistoryOutlined, CreditCardOutlined,
     PlusOutlined,
     EditOutlined,
     DeleteOutlined,
@@ -736,15 +685,12 @@ import PayNow from "./PayNow.vue";
 import CustomerAddButton from "../../users/CustomerAddButton.vue";
 import InvoiceModal from "./Invoice.vue";
 import PosLayout1 from "./PosLayout1.vue";
-import dayjs from 'dayjs';
 import PosLayout2 from "./PosLayout2.vue";
-import ShortcutModal from "./components/ShortcutModal.vue";
+
 
 
 export default {
     components: {
-        ArrowLeftOutlined, FullscreenOutlined, FullscreenExitOutlined,
-        FileTextOutlined, PauseCircleOutlined, HistoryOutlined, CreditCardOutlined,
         PlusOutlined,
         SearchOutlined,
         EditOutlined,
@@ -759,7 +705,6 @@ export default {
         PayNow,
         CustomerAddButton,
         InvoiceModal,
-        ShortcutModal,
     },
     setup() {
         const {
@@ -776,11 +721,9 @@ export default {
         } = fields();
 
         const selectedProducts = ref([]);
-        const productSearchInput = ref(null)
         const selectedProductIds = ref([]);
         const removedOrderItemsIds = ref([]);
-
-        const helpVisible = ref(false)
+        const mpesaVisible = ref(false);
         const postLayout = ref(1);
 
         const state = reactive({
@@ -814,7 +757,6 @@ export default {
         const showSuspendModal = ref(false)
         const selectedSuspendId = ref(null)
         const suspendTokenCounter = ref(1);
-        let clockInterval;
         const suspendColumns = [
             {
                 title: "Token",
@@ -843,12 +785,11 @@ export default {
             getPreFetchData();
             getPreFetchData();
             loadSuspendedSales();
-            startClock()
+
             window.addEventListener("keydown", handleKeyboardShortcuts);
         });
         onUnmounted(() => {
             window.removeEventListener("keydown", handleKeyboardShortcuts);
-            clearInterval(clockInterval);
         });
 
         const reFetchProducts = () => {
@@ -1260,91 +1201,18 @@ export default {
             localStorage.setItem("suspendedSales", JSON.stringify(suspendedSales.value));
             message.success("Suspended sale deleted");
         };
-        const closeHelpModal = () => {
-            helpVisible.value = false;
-        }
-        let lastSpacePress = 0;
         const handleKeyboardShortcuts = (e) => {
-            const targetedKeys = ['F1', 'F5', 'F7', 'F8', 'F9', 'F10'];
-            if (e.code === 'Space') {
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                    return;
-                }
-                const curretTime = new Date().getTime();
-                const gap = curretTime - lastSpacePress;
-
-                if (gap < 250) {
-                    e.preventDefault();
-                    toggleFullScreen();
-                }
-
-                lastSpacePress = curretTime;
-            }
-            if (targetedKeys.includes(e.key)) {
+            if (e.key === "F7") {
                 e.preventDefault();
-            }
-            // alert(e.key)
-            switch (e.key) {
-                case 'F1':
-                    productSearchInput.value.focus()
-                    // focusSearch(); // You'd define this to focus your input
-                    break;
-                case 'F5':
-                    openMpesa();
-                    break;
-                case 'F7':
-                    createQuotation();
-                    break;
-                case 'F8':
-                    suspendSale();
-                    break;
-                case 'F9':
-                    openSuspendedSales();
-                    break;
-                case 'F10':
-                    if (formData.value.subtotal > 0) payNow();
-                    break;
-                case '?':
-                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-                        helpVisible.value = true;
-                    }
-                    break;
-                case 'Escape':
-                    helpVisible.value = false;
-                    break;
+                suspendSale();
             }
 
-
-        };
-
-        const isFullScreen = ref(false);
-        const currentTime = ref(dayjs().format('HH:mm:ss'));
-        const currentDate = ref(dayjs().format('ddd, D MMM YYYY'));
-
-        // 1. Clock Logic
-
-        const startClock = () => {
-            clockInterval = setInterval(() => {
-                currentTime.value = dayjs().format('HH:mm:ss');
-            }, 1000);
-        };
-        const toggleFullScreen = () => {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-                isFullScreen.value = true;
-            } else {
-                document.exitFullscreen();
-                isFullScreen.value = false;
+            if (e.key === "F8") {
+                e.preventDefault();
+                openSuspendedSales();
             }
         };
-
         return {
-            isFullScreen,
-            currentTime,
-            currentDate,
-            clockInterval,
-            startClock,
-            toggleFullScreen,
             taxes,
             customers,
             categories,
@@ -1410,116 +1278,13 @@ export default {
             openSuspendedSales,
             restoreSale,
             suspendColumns,
-            deleteSuspendedSale,
-            // help modal
-            helpVisible,
-            closeHelpModal,
-            productSearchInput,
+            deleteSuspendedSale
         };
     },
 };
 </script>
 
 <style lang="less" scoped>
-// breadre cu
-.pos-header-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 24px;
-    background: #fff;
-    border-bottom: 1px solid #f0f0f0;
-    margin-bottom: 16px;
-}
-
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.back-btn {
-    font-size: 18px;
-    color: #8c8c8c;
-
-    &:hover {
-        color: #1890ff;
-        background: #e6f7ff;
-    }
-}
-
-.header-titles {
-    display: flex;
-    flex-direction: column;
-
-    .pos-title {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 700;
-        line-height: 1.2;
-        color: #1a1a1a;
-    }
-}
-
-.modern-breadcrumb {
-    font-size: 11px;
-    color: #bfbfbf;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-
-    :deep(.ant-breadcrumb-link) {
-        color: #bfbfbf;
-    }
-
-    .active {
-        color: #8c8c8c;
-        font-weight: 600;
-    }
-}
-
-.pos-clock {
-    text-align: center;
-
-    .time {
-        font-family: monospace;
-        font-size: 20px;
-        font-weight: bold;
-        color: #1e293b;
-        display: block;
-    }
-
-    .date {
-        font-size: 11px;
-        color: #64748b;
-    }
-}
-
-
-.action-icon-btn {
-    border: none;
-    background: #f5f5f5;
-    color: #595959;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    transition: all 0.3s;
-
-    &:hover {
-        background: #e6f7ff;
-        color: #1890ff;
-    }
-}
-
-@media (max-width: 576px) {
-    .modern-breadcrumb {
-        display: none;
-    }
-}
-
-// be
 .pos-footer-bar {
     position: sticky;
     bottom: 0;
@@ -1541,11 +1306,7 @@ export default {
     .left-meta {
         color: #8c8c8c;
         font-size: 13px;
-
-        .meta-item strong {
-            color: #595959;
-            margin-right: 4px;
-        }
+        .meta-item strong { color: #595959; margin-right: 4px; }
     }
 }
 
@@ -1598,108 +1359,21 @@ export default {
     background: #fffbe6;
     border-color: #ffe58f;
     color: #d48806;
-
-    &:hover {
-        background: #fff1b8;
-        border-color: #d48806;
-    }
+    &:hover { background: #fff1b8; border-color: #d48806; }
 }
 
 .btn-restore {
     background: #f6ffed;
     border-color: #b7eb8f;
     color: #389e0d;
-
-    &:hover {
-        background: #d9f7be;
-        border-color: #389e0d;
-    }
+    &:hover { background: #d9f7be; border-color: #389e0d; }
 }
 
 @media (max-width: 768px) {
-    .footer-main-row {
-        flex-direction: column;
-        gap: 16px;
-        align-items: stretch;
-    }
-
-    .grand-total-section {
-        justify-content: space-between;
-    }
-
-    .pay-now-btn {
-        width: 100%;
-        justify-content: center;
-    }
+    .footer-main-row { flex-direction: column; gap: 16px; align-items: stretch; }
+    .grand-total-section { justify-content: space-between; }
+    .pay-now-btn { width: 100%; justify-content: center; }
 }
-
-.shortcut-badge {
-    font-size: 10px;
-    background: rgba(0, 0, 0, 0.06);
-    padding: 2px 4px;
-    border-radius: 4px;
-    margin-left: 8px;
-    color: #8c8c8c;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.btn-quotation {
-    border-color: #d9d9d9;
-    color: #595959;
-    transition: all 0.3s;
-
-    &:hover {
-        border-color: #1890ff;
-        color: #1890ff;
-        background: #e6f7ff;
-    }
-}
-
-.pay-now-btn {
-    height: 60px; // Slightly taller for better focus
-    padding: 0 32px;
-
-    .btn-content {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        line-height: 1.2;
-    }
-
-    .btn-text {
-        font-size: 18px;
-        font-weight: 700;
-    }
-
-    .btn-shortcut {
-        font-size: 11px;
-        opacity: 0.7;
-        font-weight: 400;
-    }
-}
-
-.btn-suspend {
-    background: #fffbe6;
-    border-color: #ffe58f;
-    color: #d48806;
-}
-
-.btn-restore {
-    background: #f6ffed;
-    border-color: #b7eb8f;
-    color: #389e0d;
-}
-
-@media (max-width: 992px) {
-
-    .shortcut-badge,
-    .btn-shortcut {
-        display: none;
-    }
-
-    // Hide shortcuts on touch devices
-}
-
 // old
 .right-pos-sidebar .ps {
     height: calc(100vh - 90px);

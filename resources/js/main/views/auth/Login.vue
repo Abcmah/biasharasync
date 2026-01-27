@@ -1,82 +1,74 @@
 <template>
     <div class="login-main-container">
         <a-row class="main-container-div">
-            <a-col :xs="24" :sm="24" :md="24" :lg="8">
-                <a-row class="login-left-div">
-                    <a-col :xs="{ span: 20, offset: 2 }" :sm="{ span: 20, offset: 2 }" :md="{ span: 16, offset: 4 }"
-                        :lg="{ span: 16, offset: 4 }">
+            <a-col :xs="24" :sm="24" :md="10" :lg="8" class="login-left-column">
+                <div class="form-wrapper">
+                    <div class="login-logo">
+                        <img class="login-img-logo" :src="globalSetting.light_logo_url" alt="logo" />
+                    </div>
 
-                        <a-card :bordered="innerWidth <= 768 ? true : false">
-                            <a-form layout="vertical">
-                                <div class="login-logo mb-30">
-                                    <img class="login-img-logo" :src="globalSetting.light_logo_url" />
-                                </div>
+                    <div class="login-header">
+                        <h1>Welcome back</h1>
+                        <p>Please enter your details to sign in.</p>
+                    </div>
 
-                                <a-alert v-if="onRequestSend.error != ''" :message="onRequestSend.error" type="error"
-                                    show-icon class="mb-20 mt-10" />
-                                <a-alert v-if="onRequestSend.success" :message="$t('messages.login_success')"
-                                    type="success" show-icon class="mb-20 mt-10" />
+                    <a-alert v-if="onRequestSend.error" :message="onRequestSend.error" type="error" show-icon class="mb-20" />
+                    <a-alert v-if="onRequestSend.success" :message="$t('messages.login_success')" type="success" show-icon class="mb-20" />
 
-                                <a-form-item :label="$t('user.email_phone')" name="email"
-                                    :help="rules.email ? rules.email.message : null"
-                                    :validateStatus="rules.email ? 'error' : null">
-                                    <a-input v-model:value="credentials.email" @pressEnter="onSubmit"
-                                        :placeholder="$t('common.placeholder_default_text', [$t('user.email_phone')])" />
-                                </a-form-item>
+                    <a-form layout="vertical" class="modern-form">
+                        <a-form-item :label="$t('user.email_phone')" name="email"
+                            :help="rules.email ? rules.email.message : null"
+                            :validateStatus="rules.email ? 'error' : null">
+                            <a-input size="large" v-model:value="credentials.email" @pressEnter="onSubmit"
+                                :placeholder="$t('common.placeholder_default_text', [$t('user.email_phone')])" />
+                        </a-form-item>
 
-                                <a-form-item :label="$t('user.password')" name="password"
-                                    :help="rules.password ? rules.password.message : null"
-                                    :validateStatus="rules.password ? 'error' : null">
-                                    <a-input-password v-model:value="credentials.password" @pressEnter="onSubmit"
-                                        :placeholder="$t('common.placeholder_default_text', [$t('user.password')])" />
-                                </a-form-item>
+                        <a-form-item :label="$t('user.password')" name="password"
+                            :help="rules.password ? rules.password.message : null"
+                            :validateStatus="rules.password ? 'error' : null">
+                            <a-input-password size="large" v-model:value="credentials.password" @pressEnter="onSubmit"
+                                :placeholder="$t('common.placeholder_default_text', [$t('user.password')])" />
+                        </a-form-item>
 
-                                <div :style="{
-                                    'display': 'flex',
-                                    'justifyContent': 'space-between'
-                                }" class="flex-justify-between mb-20">
-                                    <a-checkbox>Remember me</a-checkbox>
-                                    <router-link :to="{ name: 'admin.forgot_password' }">
-                                        {{ $t('login.forgot_password') }}?
-                                    </router-link>
-                                </div>
+                        <div class="flex-justify-between mb-24">
+                            <a-checkbox>Remember me</a-checkbox>
+                            <router-link :to="{ name: 'admin.forgot_password' }" class="forgot-link">
+                                {{ $t('login.forgot_password') }}?
+                            </router-link>
+                        </div>
 
-                                <a-form-item>
-                                    <a-button :loading="loading" @click="onSubmit" class="login-btn" block
-                                        type="primary">
-                                        {{ $t("menu.login") }}
-                                    </a-button>
+                        <a-button :loading="loading" @click="onSubmit" class="login-btn" block type="primary" size="large">
+                            {{ $t("menu.login") }}
+                        </a-button>
 
-                                    <a-divider plain>Or sign in with</a-divider>
+                        <a-divider plain><span class="divider-text">Or continue with</span></a-divider>
 
-                                    <a-button block :loading="isGoogleLoading" @click="handleGoogleLogin"
-                                        class="google-btn">
-                                        <template #icon><google-outlined /></template>
-                                        {{ $t('menu.sign_in_with_google') }}
-                                    </a-button>
-                                </a-form-item>
+                        <a-button :disabled="true" block :loading="isGoogleLoading" @click="handleGoogleLogin" class="google-btn" size="large">
+                            <template #icon><google-outlined /></template>
+                            Google
+                        </a-button>
 
-                                <div class="login-footer-text">
-                                    {{ $t('user.dont_have_account') }}
-                                    <router-link>
-                                        {{ $t('user.create_account') }}
-                                    </router-link>
-                                </div>
-                            </a-form>
-                        </a-card>
-                    </a-col>
-                </a-row>
+                        <!-- <div class="login-footer-text">
+                            {{ $t('user.dont_have_account') }}
+                            <router-link :to="{ name: 'register' }">
+                                {{ $t('user.create_account') }}
+                            </router-link>
+                        </div> -->
+                    </a-form>
+                </div>
             </a-col>
 
-            <a-col :xs="0" :sm="0" :md="24" :lg="16">
-                <div class="right-login-div">
-                    <img class="right-image" :src="loginBackground" />
+            <a-col :xs="0" :sm="0" :md="14" :lg="16">
+                <div class="right-visual-container" :style="{ backgroundImage: `url(${loginBackground})` }">
+                    <div class="overlay-content">
+                        <h2>Streamline your workflow.</h2>
+                        <p>Join thousands of users managing their business effortlessly.</p>
+                    </div>
                 </div>
             </a-col>
         </a-row>
     </div>
 </template>
-
 <script>
 import { defineComponent, reactive, ref } from "vue";
 import { useStore } from "vuex";
@@ -185,52 +177,133 @@ export default defineComponent({
 });
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 .login-main-container {
-    background: #fff;
+    background: #ffffff;
     height: 100vh;
+    overflow: hidden;
 }
 
 .main-container-div {
     height: 100%;
 }
 
-.login-left-div {
-    height: 100%;
+.login-left-column {
+    display: flex;
     align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: #fff;
+}
+
+.form-wrapper {
+    width: 100%;
+    max-width: 400px;
 }
 
 .login-logo {
-    text-align: center;
+    margin-bottom: 40px;
+    img { height: 45px; object-fit: contain; }
 }
 
-.login-img-logo {
-    width: 150px;
+.login-header {
+    margin-bottom: 32px;
+    h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 8px;
+    }
+    p {
+        color: #8c8c8c;
+        font-size: 16px;
+    }
 }
 
-.container-content {
-    margin-top: 100px;
+.modern-form {
+    .ant-input-affix-wrapper, .ant-input {
+        padding: 10px 15px;
+        border-radius: 8px;
+    }
 }
 
-.login-div {
-    border-radius: 10px;
-}
-
-.outer-div {
-    margin: 0;
-}
-
-.right-login-div {
-    background: #f8f8ff;
-    height: 100%;
+.flex-justify-between {
     display: flex;
+    justify-content: space-between;
     align-items: center;
 }
 
-.right-image {
-    width: 100%;
-    display: block;
-    margin: 0 auto;
-    height: calc(100vh);
+.login-btn {
+    height: 48px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 16px;
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.25);
 }
+
+.google-btn {
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d9d9d9;
+    font-weight: 500;
+    &:hover {
+        background: #fafafa;
+        border-color: #d9d9d9;
+        color: rgba(0, 0, 0, 0.85);
+    }
+}
+
+.divider-text {
+    color: #bfbfbf;
+    font-size: 13px;
+}
+
+.login-footer-text {
+    margin-top: 24px;
+    text-align: center;
+    color: #8c8c8c;
+    a { font-weight: 600; }
+}
+
+/* Right Side Styling */
+.right-visual-container {
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    padding: 60px;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%);
+    }
+
+    .overlay-content {
+        position: relative;
+        z-index: 1;
+        color: white;
+        max-width: 500px;
+
+        h2 {
+            color: white;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+    }
+}
+
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
 </style>
