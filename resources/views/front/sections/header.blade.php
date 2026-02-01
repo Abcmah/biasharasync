@@ -18,13 +18,14 @@
                         </a></li>
                     <li><a class="nav-link" href="{{ route('front.pricing') }}">
                             {{ $frontSetting->pricing_text }}
-                        </a></li>
-                    {{-- @if ($frontSetting->login_button_show == 1)
+                        </a>
+                    </li>
+                    @if ($frontSetting->login_button_show == 1)
                         <li>
                             <a href="{{ route('main', ['path' => 'admin/login']) }}" class="btn-sm btn-primary"
                                 style="color: white;">{{ $frontSetting->login_button_text }}</a>
                         </li>
-                    @endif --}}
+                    @endif
                     @if ($frontSetting->register_button_show == 1)
                         <li>
                             <a href="{{ route('front.register') }}" class="btn-sm btn-primary-outline"
@@ -49,7 +50,6 @@
                                         <span>{{ $allLang->key }}</span>
                                     </a>
                                 </li>
-
                             @endforeach
                         </ul>
                     </div>
@@ -58,9 +58,9 @@
         </div>
     </nav>
     @if ($showFullHeader)
-     <div class="container mx-auto px-8">
-         @include('front.includes.home_header')
-    </div>
+        <div class="container mx-auto px-8">
+            @include('front.includes.home_header')
+        </div>
     @else
         @include('front.includes.breadcrumb')
     @endif

@@ -1,226 +1,100 @@
 <template>
-    <div class="bg-white">
+    <div class="homepage-modern">
         <a-row type="flex" justify="center">
-            <a-col :span="20">
-                <a-row :gutter="[20, 30]" class="mt-20">
-                    <a-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
-                        <a-carousel autoplay>
-                            <div
-                                v-for="item in frontSettings.bottom_banners_1_details"
-                                :key="item.uid"
-                            >
-                                <img :src="item.url" :style="{ width: '100%' }" />
-                            </div>
-                        </a-carousel>
-                    </a-col>
-                    <a-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
-                        <a-row :gutter="[20, 20]">
-                            <a-col :span="24">
-                                <a-carousel autoplay>
-                                    <div
-                                        v-for="item in frontSettings.bottom_banners_2_details"
-                                        :key="item.uid"
-                                    >
-                                        <img :src="item.url" :style="{ width: '100%' }" />
+            <a-col :xs="22" :sm="22" :md="22" :lg="20">
+
+                <div class="hero-banners mt-30">
+                    <a-row :gutter="[20, 20]">
+                        <a-col :xs="24" :md="14" :lg="16">
+                            <div class="hero-card main-carousel">
+                                <a-carousel autoplay effect="fade">
+                                    <div v-for="item in frontSettings.bottom_banners_1_details" :key="item.uid">
+                                        <div class="banner-slide" :style="{ backgroundImage: `url(${item.url})` }">
+                                            <div class="banner-overlay"></div>
+                                        </div>
                                     </div>
                                 </a-carousel>
-                            </a-col>
-                            <a-col :span="24">
-                                <div
-                                    v-for="item in frontSettings.bottom_banners_3_details"
-                                    :key="item.uid"
-                                >
-                                    <img :src="item.url" :style="{ width: '100%' }" />
-                                </div>
-                            </a-col>
-                        </a-row>
-                    </a-col>
-                </a-row>
-
-                <a-divider
-                    v-if="
-                        (frontSettings.bottom_banners_1_details &&
-                            frontSettings.bottom_banners_1_details.length > 0) ||
-                        (frontSettings.bottom_banners_2_details &&
-                            frontSettings.bottom_banners_2_details.length > 0) ||
-                        (frontSettings.bottom_banners_3_details &&
-                            frontSettings.bottom_banners_3_details.length > 0)
-                    "
-                    dashed
-                />
-
-                <div
-                    v-if="
-                        frontSettings.featured_products_details &&
-                        frontSettings.featured_products_details.length > 0
-                    "
-                >
-                    <div style="text-align: center" class="mt-50 mb-40">
-                        <a-typography-title :level="3" :style="{ marginBottom: '5px' }">
-                            {{ frontSettings.featured_products_title }}
-                        </a-typography-title>
-                        <a-typography-title
-                            v-if="frontSettings.featured_products_subtitle"
-                            type="secondary"
-                            :level="5"
-                            :style="{ marginTop: '0px' }"
-                        >
-                            {{ frontSettings.featured_products_subtitle }}
-                        </a-typography-title>
-                    </div>
-
-                    <div class="prdoct-card-list-body mt-20 mb-50">
-                        <a-row :gutter="[30, 30]">
-                            <a-col
-                                v-for="product in featuredProducts"
-                                :xs="24"
-                                :sm="12"
-                                :md="8"
-                                :lg="6"
-                                :xl="4"
-                                :key="product.id"
-                            >
-                                <ProductCard
-                                    :product="product"
-                                    :key="product.id"
-                                    :currency="currency"
-                                />
-                            </a-col>
-                        </a-row>
-                    </div>
-                    <a-divider dashed />
-                </div>
-
-                <div
-                    v-if="
-                        frontSettings.featured_categories_details &&
-                        frontSettings.featured_categories_details.length > 0
-                    "
-                >
-                    <div style="text-align: center" class="mt-50 mb-40">
-                        <a-typography-title :level="3" :style="{ marginBottom: '5px' }">
-                            {{ frontSettings.featured_categories_title }}
-                        </a-typography-title>
-                        <a-typography-title
-                            v-if="frontSettings.featured_categories_subtitle"
-                            type="secondary"
-                            :level="5"
-                            :style="{ marginTop: '0px' }"
-                        >
-                            {{ frontSettings.featured_categories_subtitle }}
-                        </a-typography-title>
-                    </div>
-                    <a-row :gutter="[10, 10]" class="mt-20 mb-50 featured-categories">
-                        <a-col
-                            :xs="24"
-                            :sm="12"
-                            :md="8"
-                            :lg="4"
-                            :xl="4"
-                            v-for="featuredCategory in frontSettings.featured_categories_details"
-                            :key="featuredCategory.id"
-                        >
-                            <div
-                                style="
-                                    padding: 0px 10px 0px 10px;
-                                    border-radius: 10px;
-                                    border: 1px solid #eee;
-                                "
-                            >
-                                <a-list
-                                    item-layout="horizontal"
-                                    :data-source="[featuredCategory]"
-                                >
-                                    <template #renderItem="{ item }">
-                                        <a-list-item>
-                                            <a-list-item-meta>
-                                                <template #title>
-                                                    {{ item.name }}
-                                                </template>
-                                                <template #avatar>
-                                                    <a-avatar :src="item.image_url" />
-                                                </template>
-                                            </a-list-item-meta>
-                                        </a-list-item>
-                                    </template>
-                                </a-list>
                             </div>
                         </a-col>
-                    </a-row>
-                    <a-divider dashed />
-                </div>
-
-                <div v-if="frontProductCards && frontProductCards.length > 0">
-                    <div
-                        v-for="frontProductCard in frontProductCards"
-                        :key="frontProductCard.id"
-                        class="prdoct-card-list"
-                    >
-                        <div style="text-align: center" class="mt-50 mb-40">
-                            <a-typography-title
-                                :level="3"
-                                :style="{ marginBottom: '5px' }"
-                            >
-                                {{ frontProductCard.title }}
-                            </a-typography-title>
-                            <a-typography-title
-                                v-if="frontProductCard.subtitle != ''"
-                                type="secondary"
-                                :level="5"
-                                :style="{ marginTop: '0px' }"
-                            >
-                                {{ frontProductCard.subtitle }}
-                            </a-typography-title>
-                        </div>
-
-                        <div class="prdoct-card-list-body mt-20 mb-50">
-                            <a-row :gutter="[30, 30]">
-                                <a-col
-                                    v-for="product in frontProductCard.products_details"
-                                    :xs="24"
-                                    :sm="12"
-                                    :md="8"
-                                    :lg="6"
-                                    :xl="4"
-                                    :key="product.id"
-                                >
-                                    <ProductCard
-                                        :product="product"
-                                        :key="product.xid"
-                                        :currency="currency"
-                                    />
+                        <a-col :xs="24" :md="10" :lg="8">
+                            <a-row :gutter="[0, 20]">
+                                <a-col :span="24">
+                                    <div class="hero-card sub-banner">
+                                        <a-carousel autoplay dots-class="slick-dots custom-dots">
+                                            <div v-for="item in frontSettings.bottom_banners_2_details" :key="item.uid">
+                                                <img :src="item.url" class="side-img" />
+                                            </div>
+                                        </a-carousel>
+                                    </div>
+                                </a-col>
+                                <a-col :span="24">
+                                    <div class="hero-card sub-banner static-promo">
+                                        <div v-for="item in frontSettings.bottom_banners_3_details" :key="item.uid">
+                                            <img :src="item.url" class="side-img" />
+                                        </div>
+                                    </div>
                                 </a-col>
                             </a-row>
-                        </div>
-                        <a-divider dashed />
-                    </div>
+                        </a-col>
+                    </a-row>
                 </div>
 
-                <a-row class="mt-20 mb-20">
-                    <a-col :span="24">
-                        <a-carousel arrows>
-                            <template #prevArrow>
-                                <div
-                                    class="custom-slick-arrow"
-                                    style="left: 10px; zindex: 1"
-                                >
-                                    <left-circle-outlined />
-                                </div>
-                            </template>
-                            <template #nextArrow>
-                                <div class="custom-slick-arrow" style="right: 10px">
-                                    <RightCircleOutlined />
-                                </div>
-                            </template>
-                            <div
-                                v-for="item in frontSettings.top_banners_details"
-                                :key="item.uid"
-                            >
-                                <img :src="item.url" :style="{ width: '100%' }" />
+                <section class="section-padding" v-if="frontSettings.featured_categories_details?.length">
+                    <div class="section-header">
+                        <h2>{{ frontSettings.featured_categories_title }}</h2>
+                        <p>{{ frontSettings.featured_categories_subtitle }}</p>
+                    </div>
+                    <div class="category-grid">
+                        <div
+                            v-for="item in frontSettings.featured_categories_details"
+                            :key="item.id"
+                            class="category-bubble-card"
+                        >
+                            <div class="bubble-img">
+                                <img :src="item.image_url" />
                             </div>
-                        </a-carousel>
-                    </a-col>
-                </a-row>
+                            <span>{{ item.name }}</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section-padding bg-light-section" v-if="featuredProducts.length">
+                    <div class="section-header">
+                        <h2>{{ frontSettings.featured_products_title }}</h2>
+                        <div class="header-line">dd</div>
+                    </div>
+                    <a-row :gutter="[24, 24]">
+                        <a-col v-for="product in featuredProducts" :key="product.id" :xs="24" :sm="24" :md="8" :lg="6" :xl="4">
+                            <ProductCard  :product="product" :currency="currency" />
+                        </a-col>
+                    </a-row>
+                </section>
+
+                <div v-for="frontProductCard in frontProductCards" :key="frontProductCard.id" class="section-padding">
+                    <div class="section-header flex-header">
+                        <div class="text-group">
+                            <h2>{{ frontProductCard.title }}</h2>
+                            <p v-if="frontProductCard.subtitle">{{ frontProductCard.subtitle }}</p>
+                        </div>
+                        <a-button type="link" class="view-all-btn">
+                            View All <right-outlined />
+                        </a-button>
+                    </div>
+                    <a-row :gutter="[24, 24]">
+                        <a-col v-for="product in frontProductCard.products_details" :key="product.id" :xs="12" :sm="12" :md="8" :lg="6" :xl="4">
+                            <ProductCard :product="product" :currency="currency" />
+                        </a-col>
+                    </a-row>
+                </div>
+
+                <div class="bottom-hero mt-50 mb-50">
+                    <a-carousel autoplay arrows>
+                        <div v-for="item in frontSettings.top_banners_details" :key="item.uid">
+                            <div class="full-width-banner" :style="{ backgroundImage: `url(${item.url})` }"></div>
+                        </div>
+                    </a-carousel>
+                </div>
+
             </a-col>
         </a-row>
     </div>
@@ -275,18 +149,125 @@ export default defineComponent({
 });
 </script>
 
-<style lang="less">
-.prdoct-card-list {
-    margin-bottom: 20px;
-    margin-top: 20px;
-    border-radius: 10px;
+<style lang="less" scoped>
+.homepage-modern {
+    background: #ffffff;
+
+    .section-padding {
+        padding: 60px 0;
+    }
+
+    /* Hero Banner Grid */
+    .hero-card {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+
+        .banner-slide {
+            height: 440px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .side-img {
+            width: 100%;
+            height: 210px;
+            object-fit: cover;
+            display: block;
+        }
+    }
+
+    /* Section Headers */
+    .section-header {
+        text-align: center;
+        margin-bottom: 40px;
+
+        h2 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+        p {
+            font-size: 16px;
+            color: #64748b;
+        }
+
+        &.flex-header {
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 15px;
+        }
+    }
+
+    /* Category Bubbles */
+    .category-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 30px;
+
+        .category-bubble-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            width: 120px;
+
+            .bubble-img {
+                width: 100px;
+                height: 100px;
+                background: #f8fafc;
+                border-radius: 50%;
+                padding: 15px;
+                margin-bottom: 12px;
+                transition: all 0.3s ease;
+                border: 1px solid #f1f5f9;
+
+                img { width: 100%; height: 100%; object-fit: contain; }
+            }
+
+            span {
+                font-weight: 600;
+                color: #334155;
+                font-size: 14px;
+                text-align: center;
+            }
+
+            &:hover .bubble-img {
+                transform: translateY(-5px);
+                background: #fff;
+                box-shadow: 0 10px 20px rgba(40, 116, 240, 0.1);
+                border-color: #2874f0;
+            }
+        }
+    }
+
+    /* Customizing Carousel Dots */
+    :deep(.slick-dots) {
+        bottom: 20px;
+        li button { background: #fff; opacity: 0.5; }
+        li.slick-active button { background: #fff; opacity: 1; }
+    }
+
+    .full-width-banner {
+        height: 350px;
+        background-size: cover;
+        background-position: center;
+        border-radius: 24px;
+    }
 }
 
-.prdoct-card-list-body {
-    padding: 10px 0px 20px 0px;
-}
+@media (max-width: 768px) {
+    .section-padding { padding: 40px 0; }
+    .hero-card .banner-slide { height: 250px; }
+    .hero-card .side-img { height: 150px; }
+    .section-header h2 { font-size: 24px; }
 
-.featured-categories .ant-list-item-meta-title {
-    margin-top: 6px;
+    // Grid 2 columns on mobile
+    :deep(.ant-col-xs-12) { width: 50% !important; }
 }
 </style>

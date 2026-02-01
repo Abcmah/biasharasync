@@ -260,12 +260,16 @@ class HomeController extends FrontBaseController
 
             $adminRole = Role::withoutGlobalScope(CompanyScope::class)->where('name', 'admin')->where('company_id', $company->id)->first();
 
-            $admin->role_id = $adminRole->id;
-            $admin->save();
-            $admin->roles()->attach($adminRole->id);
+            // dd($adminRole);
+            if($adminRole){
+                $admin->role_id = $adminRole->id;
+                $admin->save();
+                $admin->roles()->attach($adminRole->id);
 
-            $company->admin_id = $admin->id;
-            $company->save();
+                $company->admin_id = $admin->id;
+                $company->save();
+
+            }
 
 
             $mailSetting = GlobalSettings::where('setting_type', 'email')->where('status', 1)->where('verified', 1)->first();

@@ -10,7 +10,7 @@
         <user-outlined
             :style="{
                 fontSize: '24px',
-                color: '#fff',
+                color: '#333',
                 verticalAlign: 'top',
             }"
         />

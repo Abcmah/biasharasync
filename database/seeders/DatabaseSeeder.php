@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
     {
         // $isLogin = auth('api')->check() ? 'yes' : 'no';
         // $this->command->info($isLogin);
-        if (env('APP_ENV') != 'envato') {
+        // if (env('APP_ENV') == 'local') {
 
             $this->call(UnitTableSeeder::class);
             $this->call(WarehouseTableSeeder::class);
@@ -59,6 +59,6 @@ class DatabaseSeeder extends Seeder
             if (app_type() == 'saas') {
                 \App\SuperAdmin\Classes\SuperAdminCommon::createSuperAdmin(true);
             }
-        }
+        // }
     }
 }

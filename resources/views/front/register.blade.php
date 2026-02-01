@@ -1,67 +1,83 @@
 @extends('front.front_layouts')
 
 @section('content')
-<section class="auth-centered-section animate-up" data-animate>
-    <div class="auth-card">
-        <div class="auth-header">
-            <h2 class="auth-title">{{ $frontSetting->register_title }}</h2>
-            <p class="auth-subtitle">{{ $frontSetting->register_description }}</p>
-        </div>
-
-        {{ html()->form('POST', route('front.register.save'))->id('ajax-register-form')->open() }}
-            {{-- Standard alert for general messages --}}
-            <div id="alert-container"></div>
-
-            <div class="form-grid">
-                <div class="form-group full-width" id="group-company_name">
-                    <label class="form-label">{{ $frontSetting->register_company_name_text }}</label>
-                    <input class="auth-input" type="text" name="company_name" id="company_name" required>
-                    <div class="error-message"></div>
-                </div>
-
-                <div class="form-group" id="group-company_email">
-                    <label class="form-label">{{ $frontSetting->register_email_text }}</label>
-                    <input class="auth-input" type="email" name="company_email" id="company_email" value="{{ $actionEmail }}" required>
-                    <div class="error-message"></div>
-                </div>
-
-                <div class="form-group" id="group-company_phone">
-                    <label class="form-label">{{ $frontSetting->register_phone_text ?? 'Phone' }}</label>
-                    <input class="auth-input" type="text" name="company_phone" id="company_phone" required>
-                    <div class="error-message"></div>
-                </div>
-
-                <div class="form-group" id="group-password">
-                    <label class="form-label">{{ $frontSetting->register_password_text }}</label>
-                    <input class="auth-input" type="password" name="password" id="password" required>
-                    <div class="error-message"></div>
-                </div>
-
-                <div class="form-group" id="group-confirm_password">
-                    <label class="form-label">{{ $frontSetting->register_confirm_password_text }}</label>
-                    <input class="auth-input" type="password" name="confirm_password" id="confirm_password" required>
-                    <div class="error-message"></div>
-                </div>
-
-                <div class="form-group full-width" id="group-condition">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="condition" name="condition" class="custom-checkbox">
-                        <label for="condition" class="checkbox-label">
-                            I agree to the <a href="{{ $frontSetting->register_agree_url }}" target="_blank">{{ $frontSetting->register_agree_text }}</a>
-                        </label>
-                    </div>
-                    <div class="error-message"></div>
-                </div>
-
-                <div class="form-group full-width">
-                    <button class="auth-submit-btn" type="submit" id="submit-btn">
-                        <span>{{ $frontSetting->register_submit_button_text }}</span>
-                    </button>
-                </div>
+<section class="auth-split-container animate-up" data-animate>
+    <div class="auth-visual-side">
+        <div class="visual-content">
+            <h1 class="visual-title">Join our growing community.</h1>
+            <p>Experience the next generation of management tools designed for professionals.</p>
+            <div class="visual-image-placeholder">
+                <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2426&auto=format&fit=crop" alt="Dashboard Preview">
             </div>
-        {{ html()->form()->close() }}
+        </div>
+    </div>
+
+    <div class="auth-form-side">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2 class="auth-title">{{ $frontSetting->register_title }}</h2>
+                <p class="auth-subtitle">{{ $frontSetting->register_description }}</p>
+            </div>
+
+            {{ html()->form('POST', route('front.register.save'))->id('ajax-register-form')->open() }}
+                <div id="alert-container"></div>
+
+                <div class="form-grid">
+                    <div class="form-group full-width" id="group-company_name">
+                        <label class="form-label">{{ $frontSetting->register_company_name_text }}</label>
+                        <input class="auth-input" type="text" name="company_name" id="company_name" placeholder="Company Name" required>
+                        <div class="error-message"></div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" id="group-company_email">
+                            <label class="form-label">{{ $frontSetting->register_email_text }}</label>
+                            <input class="auth-input" type="email" name="company_email" id="company_email" value="{{ $actionEmail }}" placeholder="name@company.com" required>
+                             <div class="error-message"></div>
+                        </div>
+
+                        <div class="form-group" id="group-company_phone">
+                            <label class="form-label">{{ $frontSetting->register_phone_text ?? 'Phone' }}</label>
+                            <input class="auth-input" type="text" name="company_phone" id="company_phone" placeholder="+1..." required>
+                             <div class="error-message"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" id="group-password">
+                            <label class="form-label">{{ $frontSetting->register_password_text }}</label>
+                            <input class="auth-input" type="password" name="password" id="password" required>
+                             <div class="error-message"></div>
+                        </div>
+
+                        <div class="form-group" id="group-confirm_password">
+                            <label class="form-label">{{ $frontSetting->register_confirm_password_text }}</label>
+                            <input class="auth-input" type="password" name="confirm_password" id="confirm_password" required>
+                             <div class="error-message"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width" id="group-condition">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="condition" name="condition" class="custom-checkbox">
+                            <label for="condition" class="checkbox-label">
+                                I agree to the <a href="{{ $frontSetting->register_agree_url }}">{{ $frontSetting->register_agree_text }}</a>
+                            </label>
+                        </div>
+                         <div class="error-message"></div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <button class="auth-submit-btn" type="submit" id="submit-btn">
+                            <span>{{ $frontSetting->register_submit_button_text }}</span>
+                        </button>
+                    </div>
+                </div>
+            {{ html()->form()->close() }}
+        </div>
     </div>
 </section>
+
 @endsection
 
 @section('scripts')
@@ -92,11 +108,13 @@ document.getElementById('ajax-register-form').addEventListener('submit', functio
     .then(async response => {
         const data = await response.json();
 
-        if (response.status === 422) { // Validation Errors
+        if (response.status === 422) {
             btn.disabled = false;
             btn.innerText = '{{ $frontSetting->register_submit_button_text }}';
 
-            // Loop through errors and apply to groups
+            if(!data.errors){
+                return
+            }
             Object.keys(data.errors).forEach(key => {
                 const group = document.getElementById(`group-${key}`);
                 if (group) {
@@ -108,7 +126,7 @@ document.getElementById('ajax-register-form').addEventListener('submit', functio
         else if (data.status === 'success') {
             alertContainer.innerHTML = `<div class="alert alert-success">Registration successful! Redirecting...</div>`;
             setTimeout(() => {
-                window.location.href = data.redirect_url || '/dashboard';
+                window.location.href = data.redirect_url || '/admin/login';
             }, 2000);
         }
         else {

@@ -9,7 +9,9 @@
                 @if ($frontSetting->header_button1_show == 1)
                     <div class="hero-buttons">
                         <a href="{{ $frontSetting->header_button1_url }}"
-                            class="btn btn-primary">{{ $frontSetting->header_button2_text }}</a>
+                            class="btn btn-primary">{{ $frontSetting->header_button1_text }}</a>
+                        <a href="{{ $frontSetting->header_button2_url }}"
+                            class="btn btn-primary-outline">{{ $frontSetting->header_button2_text }}</a>
                     </div>
                 @endif
             </div>

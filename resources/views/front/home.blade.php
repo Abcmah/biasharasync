@@ -10,7 +10,7 @@
 
 {{-- Clients - Start --}}
 
-<section class="logo-section">
+{{-- <section class="logo-section">
     <div class="logo-container">
         <div class="client-heading-wrapper">
             <h4 class="client-heading">
@@ -29,7 +29,7 @@
             @endforeach
         </div>
     </div>
-</section>
+</section> --}}
 {{-- Clients - End --}}
 
 {{-- Stats --}}

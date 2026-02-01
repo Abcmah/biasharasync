@@ -196,7 +196,7 @@ export default {
                 });
             },
             updateApp(context) {
-              
+
                 axiosAdmin.get('/app')
                 .then(function (response) {
                     context.commit('updateApp', response.data.app);
@@ -222,7 +222,7 @@ export default {
                 });
         },
         updateAllWarehouses(context) {
-             return
+
             axiosAdmin.get('/warehouses?limit=10000')
             .then(function (response) {
                 context.commit('updateAllWarehouses', response.data);

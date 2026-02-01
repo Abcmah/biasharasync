@@ -1,0 +1,64 @@
+services:
+    application:
+        build:
+            args:
+                container_project_path: /var/www/html/
+                uid: 1000
+                user: $USER
+            context: .
+        container_name: 'biasharasync_application'
+        restart: unless-stopped
+        volumes:
+            - ./:/var/www/html/
+            - ./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+
+        networks:
+            - biasharasync_network
+
+        expose:
+            - "80"
+
+        labels:
+            - "traefik.enable=true"
+            - "traefik.docker.network=proxy_network"
+            - "traefik.http.routers.biasharasync-prod.rule=Host(`biasharasync.co.ke`) || Host(`www.biasharasync.co.ke`)"
+            - "traefik.http.routers.biasharasync-prod.entrypoints=websecure"
+            - "traefik.http.routers.biasharasync-prod.tls.certresolver=le"
+            - "traefik.http.services.biasharasync-prod.loadbalancer.server.port=80"
+
+    scheduler:
+        build:
+            args:
+                container_project_path: /var/www/html/
+                uid: 1000
+                user: $USER
+            context: .
+        container_name: 'biasharasync_hub_scheduler'
+        command: >
+            sh -c "while [ true ]; do php /var/www/html/artisan schedule:run --verbose --no-interaction & sleep 60; done"
+        restart: unless-stopped
+        volumes:
+            - ./:/var/www/html/
+        networks:
+            - biasharasync_network
+
+    horizon:
+        build:
+            args:
+                container_project_path: /var/www/html/
+                uid: 1000
+                user: $USER
+                context: .
+        command: php /var/www/html/artisan horizon
+        restart: unless-stopped
+        depends_on:
+            - application
+        volumes:
+            - ./:/var/www/html/
+            - ./storage/logs:/var/www/html/storage/logs
+        networks:
+            - biasharasync_network
+
+networks:
+    biasharasync_network:
+        driver: "bridge"

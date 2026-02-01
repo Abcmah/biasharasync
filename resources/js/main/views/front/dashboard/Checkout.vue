@@ -1,351 +1,278 @@
 <template>
-    <div class="mt-30 mb-30">
+    <div class="checkout-wrapper mt-30 mb-30">
         <a-row type="flex" justify="center">
-            <a-col :span="20">
-                <a-breadcrumb>
-                    <a-breadcrumb-item>
-                        <router-link
-                            :to="{
-                                name: 'front.homepage',
-                                params: { warehouse: frontWarehouse.slug },
-                            }"
-                        >
-                            {{ $t("front.home") }}
-                        </router-link>
-                    </a-breadcrumb-item>
-                    <a-breadcrumb-item>
-                        <router-link
-                            :to="{
-                                name: 'front.dashboard',
-                                params: { warehouse: frontWarehouse.slug },
-                            }"
-                        >
-                            {{ $t("front.dashboard") }}
-                        </router-link>
-                    </a-breadcrumb-item>
-                    <a-breadcrumb-item>
-                        <router-link
-                            :to="{
-                                name: 'front.orders',
-                                params: { warehouse: frontWarehouse.slug },
-                            }"
-                        >
-                            {{ $t("front.my_orders") }}
-                        </router-link>
-                    </a-breadcrumb-item>
+            <a-col :xs="22" :sm="22" :md="22" :lg="20">
+                <a-breadcrumb class="mb-30">
+                    <a-breadcrumb-item><router-link to="/">{{ $t("front.home") }}</router-link></a-breadcrumb-item>
                     <a-breadcrumb-item>{{ $t("front.checkout_page") }}</a-breadcrumb-item>
                 </a-breadcrumb>
 
-                <a-row :gutter="[30, 30]" class="mt-30">
-                    <a-col :xs="24" :sm="24" :md="24" :lg="16" :xl="16">
-                        <a-card
-                            :title="null"
-                            :bordered="false"
-                            :style="{ borderRadius: '10px' }"
-                            class="dashboard-container"
-                        >
-                            <a-row>
-                                <a-col :span="24">
-                                    <a-alert
-                                        v-if="selectedAddress == null"
-                                        :message="$t('front.select_shipping_address')"
-                                        type="error"
-                                        class="mb-10"
-                                        show-icon
-                                    />
+                <a-row :gutter="[30, 30]">
+                    <a-col :xs="24" :lg="16">
+                        <a-card :bordered="false" class="checkout-card main-form">
+                            <section class="checkout-section">
+                                <div class="section-title">
+                                    <span class="step-number">1</span>
+                                    <h3>{{ $t("front.address_details") }}</h3>
+                                </div>
+                                <a-alert v-if="!selectedAddress" :message="$t('front.select_shipping_address')" type="warning" show-icon class="mb-20" />
+                                <UserAddress @onAddressSelection="addressSelected" />
+                            </section>
 
-                                    <a-typography-title :level="3">
-                                        1. {{ $t("front.address_details") }}
-                                    </a-typography-title>
-                                    <UserAddress @onAddressSelection="addressSelected" />
-                                    <a-divider />
+                            <a-divider />
 
-                                    <a-typography-title :level="3">
-                                        2. {{ $t("front.payment_details") }}
-                                    </a-typography-title>
-                                    <a-row :gutter="30" class="mt-20">
-                                        <a-col
-                                            :xs="24"
-                                            :sm="24"
-                                            :md="24"
-                                            :lg="12"
-                                            :xl="12"
-                                        >
-                                            <div class="payment-methods">
-                                                <div class="cod">
-                                                    <div class="icon-text">
-                                                        <wallet-outlined class="mr-5" />
-                                                        {{ $t("front.cash_on_delivery") }}
-                                                    </div>
-                                                    <a-radio
-                                                        v-model:checked="addressMethod"
-                                                    >
-                                                    </a-radio>
-                                                </div>
+                            <section class="checkout-section">
+                                <div class="section-title">
+                                    <span class="step-number">2</span>
+                                    <h3>{{ $t("front.payment_details") }}</h3>
+                                </div>
+
+                                <a-row :gutter="[16, 16]" class="mt-20">
+                                    <a-col :xs="24" :md="12">
+                                        <div :class="['payment-option', paymentMethod === 'cod' ? 'active' : '']" @click="paymentMethod = 'cod'">
+                                            <div class="option-content">
+                                                <wallet-outlined />
+                                                <span>{{ $t("front.cash_on_delivery") }}</span>
                                             </div>
-                                        </a-col>
-                                    </a-row>
-                                    <a-divider />
+                                            <a-radio :checked="paymentMethod === 'cod'" />
+                                        </div>
+                                    </a-col>
 
-                                    <a-row :gutter="[30, 10]" class="mt-40">
-                                        <a-col
-                                            :xs="24"
-                                            :sm="24"
-                                            :md="24"
-                                            :lg="12"
-                                            :xl="12"
-                                        >
-                                            <a-button type="primary" size="large" block>
-                                                <router-link
-                                                    :to="{
-                                                        name: 'front.homepage',
-                                                        params: {
-                                                            warehouse:
-                                                                frontWarehouse.slug,
-                                                        },
-                                                    }"
-                                                >
-                                                    <RollbackOutlined />
-                                                    {{ $t("front.continue_shopping") }}
-                                                </router-link>
-                                            </a-button>
-                                        </a-col>
-                                        <a-col
-                                            :xs="24"
-                                            :sm="24"
-                                            :md="24"
-                                            :lg="12"
-                                            :xl="12"
-                                        >
-                                            <a-button
-                                                type="primary"
-                                                size="large"
-                                                @click="confirmOrder"
-                                                :disabled="
-                                                    products.length == 0 ||
-                                                    selectedAddress == null
-                                                "
-                                                :loading="loading"
-                                                block
-                                            >
-                                                {{ $t("front.confirm_order") }}
-                                                <RightOutlined />
-                                            </a-button>
-                                        </a-col>
-                                    </a-row>
-                                </a-col>
-                            </a-row>
+                                    <a-col :xs="24" :md="12">
+                                        <div :class="['payment-option mpesa', paymentMethod === 'mpesa' ? 'active' : '']" @click="openMpesaModal">
+                                            <div class="option-content">
+                                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/1200px-M-PESA_LOGO-01.svg.png" class="mpesa-logo" />
+                                                <span>Pay with M-Pesa</span>
+                                            </div>
+                                            <a-radio :checked="paymentMethod === 'mpesa'" />
+                                        </div>
+                                    </a-col>
+                                </a-row>
+                            </section>
+
+                            <div class="action-footer mt-40">
+                                <a-button type="ghost" size="large" @click="$router.go(-1)">
+                                    <rollback-outlined /> Back
+                                </a-button>
+                                <a-button
+                                    type="primary"
+                                    size="large"
+                                    :loading="loading"
+                                    :disabled="!selectedAddress || products.length === 0"
+                                    @click="confirmOrder"
+                                >
+                                    {{ $t("front.confirm_order") }} <right-outlined />
+                                </a-button>
+                            </div>
                         </a-card>
                     </a-col>
-                    <a-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8">
-                        <a-card
-                            :title="null"
-                            :bordered="false"
-                            :style="{ borderRadius: '10px' }"
-                        >
-                            <a-list
-                                class="demo-loadmore-list"
-                                item-layout="horizontal"
-                                :data-source="products"
-                            >
+
+                    <a-col :xs="24" :lg="8">
+                        <a-card :bordered="false" class="checkout-card summary-card">
+                            <h3 class="summary-title">Order Summary</h3>
+                            <a-list item-layout="horizontal" :data-source="products" class="cart-preview-list">
                                 <template #renderItem="{ item }">
                                     <a-list-item>
                                         <a-list-item-meta>
-                                            <template #title>
-                                                {{ item.name }}
-                                                <br />
-                                                <small
-                                                    :style="{
-                                                        color: 'rgba(0, 0, 0, 0.45)',
-                                                    }"
-                                                >
-                                                    Price:
-                                                    {{
-                                                        formatAmountCurrency(
-                                                            getSalesPriceWithTax(item)
-                                                        )
-                                                    }}
-                                                </small>
-                                            </template>
-                                            <template #avatar>
-                                                <a-avatar
-                                                    :src="item.image_url"
-                                                    size="large"
-                                                />
-                                            </template>
+                                            <template #avatar><a-avatar :src="item.image_url" shape="square" :size="50" /></template>
+                                            <template #title>{{ item.name }} x {{ item.cart_quantity }}</template>
                                             <template #description>
-                                                {{
-                                                    formatAmountCurrency(
-                                                        getSalesPriceWithTax(item) *
-                                                            item.cart_quantity
-                                                    )
-                                                }}
+                                                {{ formatAmountCurrency(getSalesPriceWithTax(item) * item.cart_quantity) }}
                                             </template>
                                         </a-list-item-meta>
-                                        <div>
-                                            <a-input-number
-                                                v-model:value="item.cart_quantity"
-                                                :min="1"
-                                                :style="{ width: '60px' }"
-                                                @change="updateCart"
-                                            />
-                                        </div>
-                                        <template #actions>
-                                            <a-button
-                                                type="link"
-                                                @click="removeItem(item.xid)"
-                                            >
-                                                <delete-outlined
-                                                    :style="{
-                                                        fontSize: '20px',
-                                                        color: '#f87171',
-                                                    }"
-                                                />
-                                            </a-button>
-                                        </template>
                                     </a-list-item>
                                 </template>
                             </a-list>
-
                             <a-divider />
-                            <div class="item-total pd-10">
-                                <a-row class="mt-10">
-                                    <a-col :span="12">{{
-                                        $t("stock.grand_total")
-                                    }}</a-col>
-                                    <a-col :span="12" class="text-right">
-                                        {{ formatAmountCurrency(total) }}
-                                    </a-col>
-                                </a-row>
+                            <div class="totals-area">
+                                <div class="total-row grand-total">
+                                    <span>{{ $t("stock.grand_total") }}</span>
+                                    <span>{{ formatAmountCurrency(total) }}</span>
+                                </div>
                             </div>
                         </a-card>
                     </a-col>
                 </a-row>
             </a-col>
         </a-row>
+
+        <a-modal v-model:open="mpesaModalVisible" title="M-Pesa Express Payment" centered @ok="triggerStkPush">
+            <div class="mpesa-modal-body">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/1200px-M-PESA_LOGO-01.svg.png" class="mpesa-logo-large" />
+                <p>Enter your M-Pesa phone number to receive a payment prompt.</p>
+                <a-form layout="vertical">
+                    <a-form-item label="Phone Number (254...)">
+                        <a-input v-model:value="mpesaPhone" placeholder="2547XXXXXXXX" size="large">
+                            <template #prefix><mobile-outlined /></template>
+                        </a-input>
+                    </a-form-item>
+                </a-form>
+                <div class="amount-badge">Total to Pay: {{ formatAmountCurrency(total) }}</div>
+            </div>
+            <template #footer>
+                <a-button key="back" @click="mpesaModalVisible = false">Cancel</a-button>
+                <a-button key="submit" type="primary" :loading="stkLoading" @click="triggerStkPush" style="background: #49aa47; border-color: #49aa47">
+                    Send STK Push
+                </a-button>
+            </template>
+        </a-modal>
     </div>
 </template>
 
 <script>
-import { defineComponent, ref, onMounted, createVNode } from "vue";
+import { defineComponent, ref, createVNode } from "vue";
 import {
-    DeleteOutlined,
-    WalletOutlined,
-    RollbackOutlined,
-    RightOutlined,
-    ExclamationCircleOutlined,
+    WalletOutlined, RollbackOutlined, RightOutlined,
+    DeleteOutlined, ExclamationCircleOutlined, MobileOutlined
 } from "@ant-design/icons-vue";
-import { Modal } from "ant-design-vue";
+import { Modal, message } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import cart from "../../../../common/composable/cart";
 import UserAddress from "./address/Index.vue";
-import { getSalesPriceWithTax } from "../../../../common/scripts/functions";
 import apiFront from "../../../../common/composable/apiFront";
+import { getSalesPriceWithTax } from "../../../../common/scripts/functions";
 
 export default defineComponent({
-    components: {
-        DeleteOutlined,
-        WalletOutlined,
-        RollbackOutlined,
-        RightOutlined,
-        UserAddress,
-        ExclamationCircleOutlined,
-    },
+    components: { WalletOutlined, RollbackOutlined, RightOutlined, DeleteOutlined, UserAddress, MobileOutlined },
     setup() {
-        const {
-            products,
-            updateCart,
-            removeItem,
-            subtotal,
-            totalTax,
-            total,
-            formatAmountCurrency,
-            frontWarehouse,
-        } = cart();
-        const selectedAddress = ref(null);
-        const addressMethod = ref(true);
+        const { products, total, formatAmountCurrency, frontWarehouse } = cart();
+        const { loading, addEditRequestFront } = apiFront();
         const { t } = useI18n();
         const router = useRouter();
         const store = useStore();
-        const { loading, addEditRequestFront } = apiFront();
 
-        onMounted(() => {});
+        const selectedAddress = ref(null);
+        const paymentMethod = ref('cod');
+        const mpesaModalVisible = ref(false);
+        const mpesaPhone = ref('254');
+        const stkLoading = ref(false);
 
-        const addressSelected = (addressId) => {
-            selectedAddress.value = addressId;
+        const openMpesaModal = () => {
+            if(!selectedAddress.value) return message.error(t('front.select_shipping_address'));
+            paymentMethod.value = 'mpesa';
+            mpesaModalVisible.value = true;
+        };
+
+        const triggerStkPush = () => {
+            stkLoading.value = true;
+            // Add your API call to Daraja/Mpesa here
+            setTimeout(() => {
+                stkLoading.value = false;
+                mpesaModalVisible.value = false;
+                message.success("STK Push sent! Please check your phone.");
+            }, 2000);
         };
 
         const confirmOrder = () => {
             Modal.confirm({
                 title: t("front.confirm_order"),
                 icon: createVNode(ExclamationCircleOutlined),
-                content: t("front.confirm_order_message"),
-                okText: t("common.yes"),
-                cancelText: t("common.no"),
+                content: `You are about to place an order for ${formatAmountCurrency(total.value)}. Continue?`,
                 onOk() {
                     addEditRequestFront({
                         url: `front/self/checkout-orders/${frontWarehouse.value.slug}`,
                         data: {
                             products: products.value,
                             address_id: selectedAddress.value,
-                            warehouse: frontWarehouse.value.slug,
+                            payment_method: paymentMethod.value,
+                            mpesa_phone: paymentMethod.value === 'mpesa' ? mpesaPhone.value : null
                         },
-                        successMessage: t("front.order_placed_message"),
                         success: (res) => {
                             store.commit("front/addCartItems", []);
-                            router.push({
-                                name: "front.checkout.success",
-                                params: {
-                                    uniqueId: res.unique_id,
-                                    warehouse: frontWarehouse.value.slug,
-                                },
-                            });
+                            router.push({ name: "front.checkout.success", params: { uniqueId: res.unique_id, warehouse: frontWarehouse.value.slug } });
                         },
                     });
-                },
-                onCancel() {
-                    loading.value = false;
                 },
             });
         };
 
         return {
-            products,
-            removeItem,
-            updateCart,
-            formatAmountCurrency,
-            subtotal,
-            total,
-            totalTax,
-            selectedAddress,
-            addressSelected,
-            addressMethod,
-            getSalesPriceWithTax,
-            confirmOrder,
-            loading,
-            frontWarehouse,
+            products, total, formatAmountCurrency, frontWarehouse, loading,
+            selectedAddress, paymentMethod, mpesaModalVisible, mpesaPhone, stkLoading,
+            addressSelected: (id) => selectedAddress.value = id,
+            openMpesaModal, triggerStkPush, confirmOrder, getSalesPriceWithTax
         };
     },
 });
 </script>
-<style lang="less">
-.payment-methods {
-    border: 1px solid #f0f2f5;
-    border-radius: 5px;
-    background: #fbfbfb;
+
+<style lang="less" scoped>
+.checkout-card {
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     padding: 10px;
+}
 
-    .cod {
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    .step-number {
+        background: #2874f0;
+        color: #fff;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
         display: flex;
-        justify-content: space-between;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    h3 { margin: 0; font-weight: 700; }
+}
 
-        .icon-text {
-            display: flex;
-            align-items: center;
-            font-weight: 500;
-        }
+.payment-option {
+    border: 2px solid #f1f5f9;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: 0.3s;
+
+    .option-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+        .mpesa-logo { height: 20px; }
+    }
+
+    &:hover { border-color: #cbd5e1; }
+    &.active { border-color: #2874f0; background: #eff6ff; }
+    &.mpesa.active { border-color: #49aa47; background: #f0fdf4; }
+}
+
+.action-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    .ant-btn { border-radius: 8px; height: 48px; padding: 0 30px; }
+}
+
+.summary-title { font-weight: 700; margin-bottom: 20px; }
+.grand-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.mpesa-modal-body {
+    text-align: center;
+    .mpesa-logo-large { height: 40px; margin-bottom: 20px; }
+    .amount-badge {
+        margin-top: 15px;
+        padding: 10px;
+        background: #f8fafc;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 16px;
     }
 }
 </style>
