@@ -3,7 +3,7 @@ FROM php:8.4-apache
 # Arguments
 ARG container_project_path=/var/www/html/
 ARG uid=1000
-ARG user=kanisahub
+ARG user=bam
 
 # Install system dependencies & PHP extensions
 RUN curl -sSLf -o /usr/local/bin/install-php-extensions \
