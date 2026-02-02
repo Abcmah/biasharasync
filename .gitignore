@@ -17,10 +17,10 @@ yarn-error.log
 /.vscode
 /.history
 .history/*
-/public/css/*
-/public/js/*
+# /public/css/*
+# /public/js/*
 /public/uploads/*
-/public/build/*
+# /public/build/*
 /Modules/*
 !/Modules
 .DS_Store
