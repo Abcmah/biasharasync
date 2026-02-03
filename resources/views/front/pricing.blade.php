@@ -70,7 +70,7 @@
             @endforeach
         </div>
 
-        <div class="pricing-trust-section">
+        {{-- <div class="pricing-trust-section">
             <p class="trust-title">{{ $frontSetting->price_card_title }}</p>
             <div class="trust-logos">
                 @foreach ($pricingCards as $pricingCard)
@@ -79,7 +79,7 @@
                     </div>
                 @endforeach
             </div>
-        </div>
+        </div> --}}
     </div>
 </section>
 

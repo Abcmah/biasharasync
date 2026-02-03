@@ -1545,7 +1545,8 @@ input:checked + .slider:before { transform: translateX(24px); }
 
 .auth-split-container {
     display: flex;
-    min-height: 100vh;
+    min-height: 80vh;
+    margin-top: 3rem;
     background: #ffffff;
 }
 
@@ -1785,7 +1786,7 @@ input:checked + .slider:before { transform: translateX(24px); }
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(48, 56, 64, 0.2);
 } */
-/* 
+/*
 .auth-submit-btn:hover {
     background: #2563eb;
     transform: translateY(-2px);
