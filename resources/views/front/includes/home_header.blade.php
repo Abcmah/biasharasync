@@ -2,8 +2,8 @@
     <div class="container">
         <div class="hero-content animate-up" data-animate>
             <div class="hero-text">
-                {{ $frontSetting->header_sub_title }}
-                {{-- <span style="color: var(--primary)"></span> --}}
+
+                <div class="sub_title"> {{ $frontSetting->header_sub_title }}</div>
                 <h1> {{ $frontSetting->header_title }}</h1>
                 <p>{{ $frontSetting->header_description }}</p>
                 @if ($frontSetting->header_button1_show == 1)

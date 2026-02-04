@@ -2,7 +2,7 @@
     <div class="footer-container">
         <div class="footer-grid">
             <div class="footer-col brand-info">
-                <div style="width: 400px" class="footer-logo-wrapper">
+                <div style="width: 200px" class="footer-logo-wrapper">
                     <img style="width: 100%" src="{{ $frontSetting->footer_logo_url }}" alt="Logo" class="footer-dynamic-logo">
                 </div>
                 <p class="footer-about">

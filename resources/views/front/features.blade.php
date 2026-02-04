@@ -32,8 +32,6 @@
     @endforeach
 </div>
 
-
-
 @include('front.sections.call_to_action')
 
 @endsection

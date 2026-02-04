@@ -29,7 +29,7 @@
         @yield('content')
 
 
-        {{-- @include('front.sections.footer') --}}
+        @include('front.sections.footer')
         @include('front.sections.scripts')
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -37,27 +37,26 @@
         @yield('scripts')
 
         <script>
-document.addEventListener("DOMContentLoaded", () => {
-    const animationObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('is-visible');
-                // Optional: Unobserve if you only want it to animate once
-                // animationObserver.unobserve(entry.target);
-            }
-        });
-    }, {
-        threshold: 0.1, // Trigger when 10% of the section is visible
-        rootMargin: "0px 0px -50px 0px" // Trigger slightly before it hits the viewport
-    });
+            document.addEventListener("DOMContentLoaded", () => {
+                const animationObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('is-visible');
+                            // Optional: Unobserve if you only want it to animate once
+                            // animationObserver.unobserve(entry.target);
+                        }
+                    });
+                }, {
+                    threshold: 0.1, // Trigger when 10% of the section is visible
+                    rootMargin: "0px 0px -50px 0px" // Trigger slightly before it hits the viewport
+                });
 
-    document.querySelectorAll('[data-animate]').forEach(el => {
-        animationObserver.observe(el);
-    });
-});
-</script>
+                document.querySelectorAll('[data-animate]').forEach(el => {
+                    animationObserver.observe(el);
+                });
+            });
+        </script>
         <script>
-
             $(document).ready(function() {
                 $(".client-logo-carousel").owlCarousel({
                     loop: true,

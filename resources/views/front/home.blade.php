@@ -35,7 +35,7 @@
 {{-- Stats --}}
 <style>
     .stats-section {
-        padding: 100px 0;
+        padding: 70px 0px;
         background-color: #f5f7fa;
     }
 
