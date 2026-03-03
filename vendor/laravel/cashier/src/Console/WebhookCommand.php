@@ -4,7 +4,9 @@ namespace Laravel\Cashier\Console;
 
 use Illuminate\Console\Command;
 use Laravel\Cashier\Cashier;
+use Symfony\Component\Console\Attribute\AsCommand;
 
+#[AsCommand(name: 'cashier:webhook')]
 class WebhookCommand extends Command
 {
     public const DEFAULT_EVENTS = [
@@ -33,7 +35,7 @@ class WebhookCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Create the Stripe webhook to interact with Cashier.';
+    protected $description = 'Create the Stripe webhook to interact with Cashier';
 
     /**
      * Execute the console command.

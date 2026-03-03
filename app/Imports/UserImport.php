@@ -86,7 +86,7 @@ class UserImport implements ToArray, WithHeadingRow
                     $userWarehouse->user_id = $user->id;
                     $userWarehouse->save();
 
-                    $user->attachRole($user->role_id);
+                    $user->addRole($user->role_id, $user->company_id);
                 }
 
 			}

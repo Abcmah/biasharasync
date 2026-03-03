@@ -139,9 +139,8 @@ trait UserTraits
 
         // Only For Staff Members
         if ($user->user_type == 'staff_members') {
-
             DB::table('role_user')->where('user_id', $user->id)->delete();
-            $user->attachRole($user->role_id);
+            $user->addRole($user->role_id, $user->company_id);
         }
 
         // Deleting Staff Member Warehouses

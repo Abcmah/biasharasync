@@ -23,7 +23,7 @@ trait ManagesPaymentMethods
             $options['customer'] = $this->stripe_id;
         }
 
-        return $this->stripe()->setupIntents->create($options);
+        return static::stripe()->setupIntents->create($options);
     }
 
     /**
@@ -36,7 +36,7 @@ trait ManagesPaymentMethods
      */
     public function findSetupIntent(string $id, array $params = [], array $options = [])
     {
-        return $this->stripe()->setupIntents->retrieve($id, $params, $options);
+        return static::stripe()->setupIntents->retrieve($id, $params, $options);
     }
 
     /**
@@ -44,30 +44,30 @@ trait ManagesPaymentMethods
      *
      * @return bool
      */
-    public function hasDefaultPaymentMethod()
+    public function hasDefaultPaymentMethod(): bool
     {
         return (bool) $this->pm_type;
     }
 
     /**
-     * Determines if the customer currently has at least one payment method of the given type.
+     * Determines if the customer currently has at least one payment method of an optional type.
      *
-     * @param  string  $type
+     * @param  string|null  $type
      * @return bool
      */
-    public function hasPaymentMethod($type = 'card')
+    public function hasPaymentMethod(?string $type = null): bool
     {
         return $this->paymentMethods($type)->isNotEmpty();
     }
 
     /**
-     * Get a collection of the customer's payment methods of the given type.
+     * Get a collection of the customer's payment methods of an optional type.
      *
-     * @param  string  $type
+     * @param  string|null  $type
      * @param  array  $parameters
-     * @return \Illuminate\Support\Collection|\Laravel\Cashier\PaymentMethod[]
+     * @return \Illuminate\Support\Collection<int, \Laravel\Cashier\PaymentMethod>
      */
-    public function paymentMethods($type = 'card', $parameters = [])
+    public function paymentMethods(?string $type = null, array $parameters = []): Collection
     {
         if (! $this->hasStripeId()) {
             return new Collection();
@@ -76,8 +76,8 @@ trait ManagesPaymentMethods
         $parameters = array_merge(['limit' => 24], $parameters);
 
         // "type" is temporarily required by Stripe...
-        $paymentMethods = $this->stripe()->paymentMethods->all(
-            ['customer' => $this->stripe_id, 'type' => $type] + $parameters
+        $paymentMethods = static::stripe()->paymentMethods->all(
+            array_filter(['customer' => $this->stripe_id, 'type' => $type]) + $parameters
         );
 
         return Collection::make($paymentMethods->data)->map(function ($paymentMethod) {
@@ -91,7 +91,7 @@ trait ManagesPaymentMethods
      * @param  \Stripe\PaymentMethod|string  $paymentMethod
      * @return \Laravel\Cashier\PaymentMethod
      */
-    public function addPaymentMethod($paymentMethod)
+    public function addPaymentMethod(StripePaymentMethod|string $paymentMethod): PaymentMethod
     {
         $this->assertCustomerExists();
 
@@ -112,7 +112,7 @@ trait ManagesPaymentMethods
      * @param  \Stripe\PaymentMethod|string  $paymentMethod
      * @return void
      */
-    public function deletePaymentMethod($paymentMethod)
+    public function deletePaymentMethod(StripePaymentMethod|string $paymentMethod): void
     {
         $this->assertCustomerExists();
 
@@ -145,13 +145,13 @@ trait ManagesPaymentMethods
     public function defaultPaymentMethod()
     {
         if (! $this->hasStripeId()) {
-            return;
+            return null;
         }
 
         /** @var \Stripe\Customer */
         $customer = $this->asStripeCustomer(['default_source', 'invoice_settings.default_payment_method']);
 
-        if ($customer->invoice_settings->default_payment_method) {
+        if ($customer->invoice_settings?->default_payment_method) {
             return new PaymentMethod($this, $customer->invoice_settings->default_payment_method);
         }
 
@@ -165,19 +165,21 @@ trait ManagesPaymentMethods
      * @param  \Stripe\PaymentMethod|string  $paymentMethod
      * @return \Laravel\Cashier\PaymentMethod
      */
-    public function updateDefaultPaymentMethod($paymentMethod)
+    public function updateDefaultPaymentMethod(StripePaymentMethod|string $paymentMethod): PaymentMethod
     {
         $this->assertCustomerExists();
 
         $customer = $this->asStripeCustomer();
 
-        $stripePaymentMethod = $this->resolveStripePaymentMethod($paymentMethod);
+        $stripePaymentMethod = $paymentMethod instanceof StripePaymentMethod
+            ? $paymentMethod
+            : $this->resolveStripePaymentMethod($paymentMethod);
 
         // If the customer already has the payment method as their default, we can bail out
         // of the call now. We don't need to keep adding the same payment method to this
         // model's account every single time we go through this specific process call.
         if ($stripePaymentMethod->id === $customer->invoice_settings->default_payment_method) {
-            return;
+            return new PaymentMethod($this, $stripePaymentMethod);
         }
 
         $paymentMethod = $this->addPaymentMethod($stripePaymentMethod);
@@ -229,7 +231,7 @@ trait ManagesPaymentMethods
      * @param  \Laravel\Cashier\PaymentMethod|\Stripe\PaymentMethod|null  $paymentMethod
      * @return $this
      */
-    protected function fillPaymentMethodDetails($paymentMethod)
+    protected function fillPaymentMethodDetails(PaymentMethod|StripePaymentMethod|null $paymentMethod)
     {
         if ($paymentMethod->type === 'card') {
             $this->pm_type = $paymentMethod->card->brand;
@@ -250,7 +252,8 @@ trait ManagesPaymentMethods
      *
      * @deprecated Will be removed in a future Cashier update. You should use the new payment methods API instead.
      */
-    protected function fillSourceDetails($source)
+    #[\Deprecated('Will be removed in a future Cashier update. You should use the new payment methods API instead')]
+    protected function fillSourceDetails(StripeCard|StripeBankAccount|null $source)
     {
         if ($source instanceof StripeCard) {
             $this->pm_type = $source->brand;
@@ -266,10 +269,10 @@ trait ManagesPaymentMethods
     /**
      * Deletes the customer's payment methods of the given type.
      *
-     * @param  string  $type
+     * @param  string|null  $type
      * @return void
      */
-    public function deletePaymentMethods($type = 'card')
+    public function deletePaymentMethods($type = null)
     {
         $this->paymentMethods($type)->each(function (PaymentMethod $paymentMethod) {
             $paymentMethod->delete();
@@ -281,10 +284,10 @@ trait ManagesPaymentMethods
     /**
      * Find a PaymentMethod by ID.
      *
-     * @param  string  $paymentMethod
+     * @param  \Stripe\PaymentMethod|string  $paymentMethod
      * @return \Laravel\Cashier\PaymentMethod|null
      */
-    public function findPaymentMethod($paymentMethod)
+    public function findPaymentMethod(StripePaymentMethod|string $paymentMethod): ?PaymentMethod
     {
         $stripePaymentMethod = null;
 
@@ -303,12 +306,12 @@ trait ManagesPaymentMethods
      * @param  \Stripe\PaymentMethod|string  $paymentMethod
      * @return \Stripe\PaymentMethod
      */
-    protected function resolveStripePaymentMethod($paymentMethod)
+    protected function resolveStripePaymentMethod(StripePaymentMethod|string $paymentMethod)
     {
         if ($paymentMethod instanceof StripePaymentMethod) {
             return $paymentMethod;
         }
 
-        return $this->stripe()->paymentMethods->retrieve($paymentMethod);
+        return static::stripe()->paymentMethods->retrieve($paymentMethod);
     }
 }

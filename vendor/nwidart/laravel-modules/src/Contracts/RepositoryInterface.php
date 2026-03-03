@@ -2,6 +2,8 @@
 
 namespace Nwidart\Modules\Contracts;
 
+use Illuminate\Filesystem\Filesystem;
+use Nwidart\Modules\Collection;
 use Nwidart\Modules\Exceptions\ModuleNotFoundException;
 use Nwidart\Modules\Module;
 
@@ -9,113 +11,73 @@ interface RepositoryInterface
 {
     /**
      * Get all modules.
-     *
-     * @return mixed
      */
     public function all();
 
     /**
-     * Get cached modules.
-     *
-     * @return array
-     */
-    public function getCached();
-
-    /**
      * Scan & get all available modules.
-     *
-     * @return array
      */
-    public function scan();
+    public function scan(): array;
 
     /**
      * Get modules as modules collection instance.
-     *
-     * @return \Nwidart\Modules\Collection
      */
-    public function toCollection();
+    public function toCollection(): Collection;
 
     /**
      * Get scanned paths.
-     *
-     * @return array
      */
-    public function getScanPaths();
+    public function getScanPaths(): array;
 
     /**
      * Get list of enabled modules.
-     *
-     * @return mixed
      */
     public function allEnabled();
 
     /**
      * Get list of disabled modules.
-     *
-     * @return mixed
      */
     public function allDisabled();
 
     /**
      * Get count from all modules.
-     *
-     * @return int
      */
-    public function count();
+    public function count(): int;
 
     /**
      * Get all ordered modules.
-     * @param string $direction
-     * @return mixed
      */
-    public function getOrdered($direction = 'asc');
+    public function getOrdered(string $direction = 'asc');
 
     /**
      * Get modules by the given status.
-     *
-     * @param int $status
-     *
-     * @return mixed
      */
-    public function getByStatus($status);
+    public function getByStatus(int|bool $status);
 
     /**
      * Find a specific module.
-     *
-     * @param $name
-     * @return Module|null
      */
-    public function find(string $name);
+    public function find(string $name): ?Module;
 
     /**
      * Find a specific module. If there return that, otherwise throw exception.
-     *
-     * @param $name
-     *
-     * @return mixed
      */
     public function findOrFail(string $name);
 
-    public function getModulePath($moduleName);
+    public function getModulePath(string $moduleName);
 
     /**
-     * @return \Illuminate\Filesystem\Filesystem
+     * Get Files
      */
-    public function getFiles();
+    public function getFiles(): Filesystem;
 
     /**
      * Get a specific config data from a configuration file.
-     * @param string $key
-     *
-     * @param string|null $default
-     * @return mixed
      */
     public function config(string $key, $default = null);
 
     /**
      * Get a module path.
-     *
-     * @return string
      */
     public function getPath(): string;
 
@@ -131,32 +93,26 @@ interface RepositoryInterface
 
     /**
      * Get asset path for a specific module.
-     *
-     * @param string $module
-     * @return string
      */
     public function assetPath(string $module): string;
 
     /**
      * Delete a specific module.
-     * @param string $module
-     * @return bool
+     *
      * @throws \Nwidart\Modules\Exceptions\ModuleNotFoundException
      */
     public function delete(string $module): bool;
 
     /**
      * Determine whether the given module is activated.
-     * @param string $name
-     * @return bool
+     *
      * @throws ModuleNotFoundException
      */
     public function isEnabled(string $name): bool;
 
     /**
      * Determine whether the given module is not activated.
-     * @param string $name
-     * @return bool
+     *
      * @throws ModuleNotFoundException
      */
     public function isDisabled(string $name): bool;

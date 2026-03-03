@@ -85,10 +85,7 @@ class CreateCompanyIdColumnsInAllTables extends Migration
             $table->boolean('is_superadmin')->default(false)->after('company_id');
         });
 
-        Schema::table('roles', function (Blueprint $table) {
-            $table->bigInteger('company_id')->unsigned()->nullable()->default(null)->after('id');
-            $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade')->onUpdate('cascade');
-        });
+       
 
         Schema::table('brands', function (Blueprint $table) {
             $table->bigInteger('company_id')->unsigned()->nullable()->default(null)->after('id');

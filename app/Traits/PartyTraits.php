@@ -28,18 +28,20 @@ trait PartyTraits
             }
         }
 
-        if (
-            ($this->userType == 'customers' && $warehouse->customers_visibility == 'warehouse') ||
-            ($this->userType == 'suppliers' && $warehouse->suppliers_visibility == 'warehouse')
-        ) {
-            $query = $query->where(function ($query) use ($warehouse) {
-                $query->where('users.warehouse_id', '=', $warehouse->id)
-                    ->orWhere('users.is_walkin_customer', '=', 1);
-            });
-        }
+        if ($warehouse) {
+            if (
+                ($this->userType == 'customers' && $warehouse->customers_visibility == 'warehouse') ||
+                ($this->userType == 'suppliers' && $warehouse->suppliers_visibility == 'warehouse')
+            ) {
+                $query = $query->where(function ($query) use ($warehouse) {
+                    $query->where('users.warehouse_id', '=', $warehouse->id)
+                        ->orWhere('users.is_walkin_customer', '=', 1);
+                });
+            }
 
-        $query = $query->join('user_details', 'user_details.user_id', '=', 'users.id')
-            ->where('user_details.warehouse_id', $warehouse->id);
+            $query = $query->join('user_details', 'user_details.user_id', '=', 'users.id')
+                ->where('user_details.warehouse_id', $warehouse->id);
+        }
 
         return $query;
     }
@@ -51,7 +53,7 @@ trait PartyTraits
         $warehouse = warehouse();
         $company = company();
 
-        $user->warehouse_id = $loggedUser->hasRole('admin') && $request->warehouse_id != '' ? $request->warehouse_id : $warehouse->id;
+        $user->warehouse_id = $loggedUser->hasRole('admin') && $request->warehouse_id != '' ? $request->warehouse_id : ($warehouse ? $warehouse->id : $loggedUser->warehouse_id);
         $user->user_type = $this->userType;
         $user->lang_id = $company->lang_id;
 
@@ -96,7 +98,7 @@ trait PartyTraits
     {
         $request = request();
         $warehouse = warehouse();
-        $warehouseId = $warehouse->id;
+        $warehouseId = $warehouse ? $warehouse->id : null;
 
         $userDetails = $user->details;
         $userDetails->warehouse_id = $warehouseId;

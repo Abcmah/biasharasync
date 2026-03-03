@@ -4,12 +4,12 @@ namespace Laravel\Cashier\Concerns;
 
 use Laravel\Cashier\Checkout;
 use Laravel\Cashier\Payment;
-use LogicException;
 use Stripe\Exception\InvalidRequestException as StripeInvalidRequestException;
 
 trait PerformsCharges
 {
     use AllowsCoupons;
+    use InteractsWithStripe;
 
     /**
      * Make a "one off" charge on the customer for the given amount.
@@ -21,7 +21,7 @@ trait PerformsCharges
      *
      * @throws \Laravel\Cashier\Exceptions\IncompletePayment
      */
-    public function charge($amount, $paymentMethod, array $options = [])
+    public function charge(int $amount, string $paymentMethod, array $options = []): Payment
     {
         $options = array_merge([
             'confirmation_method' => 'automatic',
@@ -44,7 +44,7 @@ trait PerformsCharges
      * @param  array  $options
      * @return \Laravel\Cashier\Payment
      */
-    public function pay($amount, array $options = [])
+    public function pay(int $amount, array $options = []): Payment
     {
         $options['automatic_payment_methods'] = ['enabled' => true];
 
@@ -61,7 +61,7 @@ trait PerformsCharges
      * @param  array  $options
      * @return \Laravel\Cashier\Payment
      */
-    public function payWith($amount, array $paymentMethods, array $options = [])
+    public function payWith(int $amount, array $paymentMethods, array $options = []): Payment
     {
         $options['payment_method_types'] = $paymentMethods;
 
@@ -77,7 +77,7 @@ trait PerformsCharges
      * @param  array  $options
      * @return \Laravel\Cashier\Payment
      */
-    public function createPayment($amount, array $options = [])
+    public function createPayment(int $amount, array $options = []): Payment
     {
         $options = array_merge([
             'currency' => $this->preferredCurrency(),
@@ -89,8 +89,11 @@ trait PerformsCharges
             $options['customer'] = $this->stripe_id;
         }
 
+        /** @var \Stripe\Service\PaymentIntentService $paymentIntentsService */
+        $paymentIntentsService = static::stripe()->paymentIntents;
+
         return new Payment(
-            $this->stripe()->paymentIntents->create($options)
+            $paymentIntentsService->create($options)
         );
     }
 
@@ -100,12 +103,15 @@ trait PerformsCharges
      * @param  string  $id
      * @return \Laravel\Cashier\Payment|null
      */
-    public function findPayment($id)
+    public function findPayment(string $id): ?Payment
     {
         $stripePaymentIntent = null;
 
+        /** @var \Stripe\Service\PaymentIntentService $paymentIntentsService */
+        $paymentIntentsService = static::stripe()->paymentIntents;
+
         try {
-            $stripePaymentIntent = $this->stripe()->paymentIntents->retrieve($id);
+            $stripePaymentIntent = $paymentIntentsService->retrieve($id);
         } catch (StripeInvalidRequestException $exception) {
             //
         }
@@ -120,9 +126,12 @@ trait PerformsCharges
      * @param  array  $options
      * @return \Stripe\Refund
      */
-    public function refund($paymentIntent, array $options = [])
+    public function refund(string $paymentIntent, array $options = [])
     {
-        return $this->stripe()->refunds->create(
+        /** @var \Stripe\Service\RefundService $refundsService */
+        $refundsService = static::stripe()->refunds;
+
+        return $refundsService->create(
             ['payment_intent' => $paymentIntent] + $options
         );
     }
@@ -135,7 +144,7 @@ trait PerformsCharges
      * @param  array  $customerOptions
      * @return \Laravel\Cashier\Checkout
      */
-    public function checkout($items, array $sessionOptions = [], array $customerOptions = [])
+    public function checkout(string|array $items, array $sessionOptions = [], array $customerOptions = []): Checkout
     {
         return Checkout::customer($this, $this)->create($items, $sessionOptions, $customerOptions);
     }
@@ -151,19 +160,21 @@ trait PerformsCharges
      * @param  array  $productData
      * @return \Laravel\Cashier\Checkout
      */
-    public function checkoutCharge($amount, $name, $quantity = 1, array $sessionOptions = [], array $customerOptions = [], array $productData = [])
-    {
-        if ($this->isAutomaticTaxEnabled()) {
-            throw new LogicException('For now, you cannot use checkout charges in combination with automatic tax calculation.');
-        }
-
+    public function checkoutCharge(
+        int $amount,
+        string $name,
+        int $quantity = 1,
+        array $sessionOptions = [],
+        array $customerOptions = [],
+        array $productData = []
+    ): Checkout {
         return $this->checkout([[
             'price_data' => [
                 'currency' => $this->preferredCurrency(),
                 'product_data' => array_merge($productData, [
                     'name' => $name,
                 ]),
-                'unit_amount' => $amount,
+                'unit_amount_decimal' => $amount,
             ],
             'quantity' => $quantity,
         ]], $sessionOptions, $customerOptions);

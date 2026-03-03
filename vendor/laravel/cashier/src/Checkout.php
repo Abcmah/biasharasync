@@ -5,6 +5,7 @@ namespace Laravel\Cashier;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
 use JsonSerializable;
 use Stripe\Checkout\Session;
@@ -12,30 +13,17 @@ use Stripe\Checkout\Session;
 class Checkout implements Arrayable, Jsonable, JsonSerializable, Responsable
 {
     /**
-     * The Stripe model instance.
-     *
-     * @var \Illuminate\Database\Eloquent\Model|null
-     */
-    protected $owner;
-
-    /**
-     * The Stripe checkout session instance.
-     *
-     * @var \Stripe\Checkout\Session
-     */
-    protected $session;
-
-    /**
      * Create a new checkout session instance.
      *
      * @param  \Illuminate\Database\Eloquent\Model|null  $owner
      * @param  \Stripe\Checkout\Session  $session
      * @return void
      */
-    public function __construct($owner, Session $session)
-    {
-        $this->owner = $owner;
-        $this->session = $session;
+    public function __construct(
+        protected $owner,
+        protected Session $session
+    ) {
+        //
     }
 
     /**
@@ -43,7 +31,7 @@ class Checkout implements Arrayable, Jsonable, JsonSerializable, Responsable
      *
      * @return \Laravel\Cashier\CheckoutBuilder
      */
-    public static function guest()
+    public static function guest(): CheckoutBuilder
     {
         return new CheckoutBuilder();
     }
@@ -55,7 +43,7 @@ class Checkout implements Arrayable, Jsonable, JsonSerializable, Responsable
      * @param  object|null  $parentInstance
      * @return \Laravel\Cashier\CheckoutBuilder
      */
-    public static function customer($owner, $parentInstance = null)
+    public static function customer($owner, ?object $parentInstance = null): CheckoutBuilder
     {
         return new CheckoutBuilder($owner, $parentInstance);
     }
@@ -68,12 +56,10 @@ class Checkout implements Arrayable, Jsonable, JsonSerializable, Responsable
      * @param  array  $customerOptions
      * @return \Laravel\Cashier\Checkout
      */
-    public static function create($owner, array $sessionOptions = [], array $customerOptions = [])
+    public static function create($owner, array $sessionOptions = [], array $customerOptions = []): Checkout
     {
         $data = array_merge([
-            'mode' => 'payment',
-            'success_url' => $sessionOptions['success_url'] ?? route('home').'?checkout=success',
-            'cancel_url' => $sessionOptions['cancel_url'] ?? route('home').'?checkout=cancelled',
+            'mode' => Session::MODE_PAYMENT,
         ], $sessionOptions);
 
         if ($owner) {
@@ -85,9 +71,31 @@ class Checkout implements Arrayable, Jsonable, JsonSerializable, Responsable
         }
 
         // Make sure to collect address and name when Tax ID collection is enabled...
-        if (isset($data['customer']) && $data['tax_id_collection']['enabled'] ?? false) {
-            $data['customer_update']['address'] = 'auto';
+        if (isset($data['customer']) && ($data['tax_id_collection']['enabled'] ?? false)) {
+            if (! isset($data['billing_address_collection'])) {
+                $data['billing_address_collection'] = 'required';
+            }
+
             $data['customer_update']['name'] = 'auto';
+        }
+
+        if ($data['mode'] === Session::MODE_PAYMENT && ($data['invoice_creation']['enabled'] ?? false)) {
+            $data['invoice_creation']['invoice_data']['metadata']['is_on_session_checkout'] = true;
+        } elseif ($data['mode'] === Session::MODE_SUBSCRIPTION) {
+            $data['subscription_data']['metadata']['is_on_session_checkout'] = true;
+        }
+
+        // Remove success and cancel URLs if "ui_mode" is "embedded" or "custom"...
+        if (isset($data['ui_mode']) && in_array($data['ui_mode'], ['embedded', 'custom'])) {
+            $data['return_url'] = $sessionOptions['return_url'] ?? route('home');
+
+            // Remove return URL for embedded UI mode when no redirection is desired on completion...
+            if (isset($data['redirect_on_completion']) && $data['redirect_on_completion'] === 'never') {
+                unset($data['return_url']);
+            }
+        } else {
+            $data['success_url'] = $sessionOptions['success_url'] ?? route('home').'?checkout=success';
+            $data['cancel_url'] = $sessionOptions['cancel_url'] ?? route('home').'?checkout=cancelled';
         }
 
         $session = $stripe->checkout->sessions->create($data);
@@ -100,7 +108,7 @@ class Checkout implements Arrayable, Jsonable, JsonSerializable, Responsable
      *
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function redirect()
+    public function redirect(): RedirectResponse
     {
         return Redirect::to($this->session->url, 303);
     }
@@ -164,7 +172,7 @@ class Checkout implements Arrayable, Jsonable, JsonSerializable, Responsable
      * @param  string  $key
      * @return mixed
      */
-    public function __get($key)
+    public function __get(string $key)
     {
         return $this->session->{$key};
     }

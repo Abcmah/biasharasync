@@ -7,66 +7,52 @@ use Illuminate\Support\Collection;
 trait DrawsScrollbars
 {
     /**
-     * Scroll the given lines.
+     * Render a scrollbar beside the visible items.
      *
-     * @param  \Illuminate\Support\Collection<int, string>  $lines
-     * @return  \Illuminate\Support\Collection<int, string>
+     * @template T of array<int, string>|\Illuminate\Support\Collection<int, string>
+     *
+     * @param  T  $visible
+     * @return T
      */
-    protected function scroll(Collection $lines, ?int $focused, int $height, int $width, string $color = 'cyan'): Collection
+    protected function scrollbar(array|Collection $visible, int $firstVisible, int $height, int $total, int $width, string $color = 'cyan'): array|Collection
     {
-        if ($lines->count() <= $height) {
-            return $lines;
+        if ($height >= $total) {
+            return $visible;
         }
 
-        $visible = $this->visible($lines, $focused, $height);
+        $scrollPosition = $this->scrollPosition($firstVisible, $height, $total);
 
-        return $visible
-            ->map(fn ($line) => $this->pad($line, $width))
-            ->map(fn ($line, $index) => match (true) {
-                $index === $this->scrollPosition($visible, $focused, $height, $lines->count()) => preg_replace('/.$/', $this->{$color}('┃'), $line),
-                default => preg_replace('/.$/', $this->gray('│'), $line),
-            });
+        $lines = $visible instanceof Collection ? $visible->all() : $visible;
+
+        $result = array_map(fn ($line, $index) => match ($index) {
+            $scrollPosition => preg_replace('/.$/', $this->{$color}('┃'), $this->pad($line, $width)) ?? '',
+            default => preg_replace('/.$/', $this->gray('│'), $this->pad($line, $width)) ?? '',
+        }, array_values($lines), range(0, count($lines) - 1));
+
+        return $visible instanceof Collection ? new Collection($result) : $result; // @phpstan-ignore return.type (https://github.com/phpstan/phpstan/issues/11663)
     }
 
     /**
-     * Get a scrolled version of the items.
-     *
-     * @param  \Illuminate\Support\Collection<int, string>  $lines
-     * @return  \Illuminate\Support\Collection<int, string>
+     * Return the position where the scrollbar "handle" should be rendered.
      */
-    protected function visible(Collection $lines, ?int $focused, int $height): Collection
+    protected function scrollPosition(int $firstVisible, int $height, int $total): int
     {
-        if ($lines->count() <= $height) {
-            return $lines;
-        }
-
-        if ($focused === null || $focused < $height) {
-            return $lines->slice(0, $height);
-        }
-
-        return $lines->slice($focused - $height + 1, $height);
-    }
-
-    /**
-     * Scroll the given lines.
-     *
-     * @param  \Illuminate\Support\Collection<int, string>  $visible
-     */
-    protected function scrollPosition(Collection $visible, ?int $focused, int $height, int $total): int
-    {
-        if ($focused < $height) {
+        if ($firstVisible === 0) {
             return 0;
         }
 
-        if ($focused === $total - 1) {
-            return $total - 1;
+        $maxPosition = $total - $height;
+
+        if ($firstVisible === $maxPosition) {
+            return $height - 1;
         }
 
-        $percent = ($focused + 1 - $height) / ($total - $height);
+        if ($height <= 2) {
+            return -1;
+        }
 
-        $keys = $visible->slice(1, -1)->keys();
-        $position = (int) ceil($percent * count($keys) - 1);
+        $percent = $firstVisible / $maxPosition;
 
-        return $keys[$position] ?? 0;
+        return (int) round($percent * ($height - 3)) + 1;
     }
 }

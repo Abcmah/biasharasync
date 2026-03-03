@@ -6,26 +6,47 @@ use App\Casts\Hash;
 use App\Classes\Common;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
-use Trebol\Entrust\Traits\EntrustUserTrait;
+use Laratrust\Contracts\LaratrustUser;
+use Laratrust\Traits\HasRolesAndPermissions;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Hash as FacadesHash;
 
-class User extends BaseModel implements AuthenticatableContract, JWTSubject
+class User extends BaseModel implements AuthenticatableContract, JWTSubject, LaratrustUser
 {
-    use Notifiable, EntrustUserTrait, Authenticatable, HasFactory;
+    use Notifiable, HasRolesAndPermissions, Authenticatable, HasFactory;
 
     protected $default = ["xid", "name", "profile_image"];
 
     protected $guarded = [
-        'id', 'warehouse_id', 'company_id', 'is_superadmin', 'opening_balance', 'opening_balance_type', 'credit_limit', 'credit_period', 'created_by', 'is_walkin_customer', 'created_at', 'updated_at', 'warehouses'
+        'id',
+        'warehouse_id',
+        'active_warehouse_id',
+        'company_id',
+        'is_superadmin',
+        'opening_balance',
+        'opening_balance_type',
+        'credit_limit',
+        'credit_period',
+        'created_by',
+        'is_walkin_customer',
+        'created_at',
+        'updated_at',
+        'warehouses'
     ];
 
     protected $dates = ['last_active_on'];
 
     protected $hidden = [
-        'id', 'company_id', 'role_id',  'warehouse_id', 'password', 'remember_token',
+        // 'id',
+        // 'company_id',
+        // 'role_id',
+        'warehouse_id',
+        'active_warehouse_id',
+        'password',
+        'remember_token',
 
         // For HRM Module
         'department_id',
@@ -34,14 +55,25 @@ class User extends BaseModel implements AuthenticatableContract, JWTSubject
     ];
 
     protected $appends = [
-        'xid', 'x_company_id', 'x_warehouse_id', 'x_role_id', 'profile_image_url',
+        'xid',
+        'x_company_id',
+        'x_warehouse_id',
+        'x_role_id',
+        'profile_image_url',
 
         // For HRM Module
-        'x_department_id', 'x_designation_id', 'x_shift_id'
+        'x_department_id',
+        'x_designation_id',
+        'x_shift_id'
     ];
 
     protected $filterable = [
-        'users.name', 'name', 'user_type', 'email', 'status', 'phone',
+        'users.name',
+        'name',
+        'user_type',
+        'email',
+        'status',
+        'phone',
 
         // For HRM Module
         'shift_id'
@@ -63,6 +95,7 @@ class User extends BaseModel implements AuthenticatableContract, JWTSubject
         'company_id' => Hash::class . ':hash',
         'role_id' => Hash::class . ':hash',
         'warehouse_id' => Hash::class . ':hash',
+        'active_warehouse_id' => Hash::class . ':hash',
         'login_enabled' => 'integer',
         'is_walkin_customer' => 'integer',
         'is_superadmin' => 'integer',
@@ -114,6 +147,11 @@ class User extends BaseModel implements AuthenticatableContract, JWTSubject
         return $this->belongsTo(Role::class);
     }
 
+    // public function roles(): MorphToMany
+    // {
+    //     return $this->Mo;
+    // }
+
     public function details()
     {
         return $this->belongsTo(UserDetails::class, 'id', 'user_id');
@@ -134,7 +172,15 @@ class User extends BaseModel implements AuthenticatableContract, JWTSubject
     {
         return $this->belongsTo(\Modules\StockiflyHrm\Entities\Department::class);
     }
+    public function defaultWarehouse()
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id', 'id');
+    }
 
+    public function activeWarehouse()
+    {
+        return $this->belongsTo(Warehouse::class, 'active_warehouse_id', 'id');
+    }
     public function designation()
     {
         return $this->belongsTo(\Modules\StockiflyHrm\Entities\Designation::class);

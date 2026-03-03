@@ -7,7 +7,6 @@ use App\Scopes\CompanyScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
-use Trebol\Entrust\Traits\EntrustUserTrait;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +15,7 @@ use Illuminate\Support\Facades\Hash as FacadesHash;
 
 class Customer extends BaseModel implements AuthenticatableContract, JWTSubject
 {
-    use Notifiable, EntrustUserTrait, Authenticatable, HasFactory;
+    use Notifiable, Authenticatable, HasFactory;
 
     protected  $table = 'users';
 

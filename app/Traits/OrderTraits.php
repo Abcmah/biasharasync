@@ -25,7 +25,6 @@ trait OrderTraits
     {
         $request = request();
         $warehouse = warehouse();
-
         $query = $query->where('orders.order_type', $this->orderType);
 
         // Dates Filters

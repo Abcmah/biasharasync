@@ -16,6 +16,7 @@ use function str_contains;
 use PHPUnit\Event\Code\TestMethod;
 use PHPUnit\Event\EventFacadeIsSealedException;
 use PHPUnit\Event\Facade;
+use PHPUnit\Event\Test\AfterLastTestMethodErrored;
 use PHPUnit\Event\Test\BeforeFirstTestMethodErrored;
 use PHPUnit\Event\Test\ConsideredRisky;
 use PHPUnit\Event\Test\DeprecationTriggered;
@@ -33,7 +34,6 @@ use PHPUnit\Event\Test\PhpunitWarningTriggered;
 use PHPUnit\Event\Test\PhpWarningTriggered;
 use PHPUnit\Event\Test\Skipped as TestSkipped;
 use PHPUnit\Event\Test\WarningTriggered;
-use PHPUnit\Event\TestData\NoDataSetFromDataProviderException;
 use PHPUnit\Event\TestRunner\DeprecationTriggered as TestRunnerDeprecationTriggered;
 use PHPUnit\Event\TestRunner\ExecutionStarted;
 use PHPUnit\Event\TestRunner\WarningTriggered as TestRunnerWarningTriggered;
@@ -43,109 +43,114 @@ use PHPUnit\Event\TestSuite\Started as TestSuiteStarted;
 use PHPUnit\Event\TestSuite\TestSuiteForTestClass;
 use PHPUnit\Event\TestSuite\TestSuiteForTestMethodWithDataProvider;
 use PHPUnit\Event\UnknownSubscriberTypeException;
+use PHPUnit\TestRunner\IssueFilter;
 use PHPUnit\TestRunner\TestResult\Issues\Issue;
-use PHPUnit\TextUI\Configuration\Source;
-use PHPUnit\TextUI\Configuration\SourceFilter;
 
 /**
+ * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
+ *
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
  */
 final class Collector
 {
-    private readonly Source $source;
-    private int $numberOfTests                       = 0;
-    private int $numberOfTestsRun                    = 0;
-    private int $numberOfAssertions                  = 0;
-    private bool $prepared                           = false;
-    private bool $currentTestSuiteForTestClassFailed = false;
+    private readonly IssueFilter $issueFilter;
+    private int $numberOfTests      = 0;
+    private int $numberOfTestsRun   = 0;
+    private int $numberOfAssertions = 0;
+    private bool $prepared          = false;
 
     /**
-     * @psalm-var list<BeforeFirstTestMethodErrored|Errored>
+     * @var non-negative-int
+     */
+    private int $numberOfIssuesIgnoredByBaseline = 0;
+
+    /**
+     * @var list<AfterLastTestMethodErrored|BeforeFirstTestMethodErrored|Errored>
      */
     private array $testErroredEvents = [];
 
     /**
-     * @psalm-var list<Failed>
+     * @var list<Failed>
      */
     private array $testFailedEvents = [];
 
     /**
-     * @psalm-var list<MarkedIncomplete>
+     * @var list<MarkedIncomplete>
      */
     private array $testMarkedIncompleteEvents = [];
 
     /**
-     * @psalm-var list<TestSuiteSkipped>
+     * @var list<TestSuiteSkipped>
      */
     private array $testSuiteSkippedEvents = [];
 
     /**
-     * @psalm-var list<TestSkipped>
+     * @var list<TestSkipped>
      */
     private array $testSkippedEvents = [];
 
     /**
-     * @psalm-var array<string,list<ConsideredRisky>>
+     * @var array<string,list<ConsideredRisky>>
      */
     private array $testConsideredRiskyEvents = [];
 
     /**
-     * @psalm-var array<string,list<PhpunitDeprecationTriggered>>
+     * @var array<string,list<PhpunitDeprecationTriggered>>
      */
     private array $testTriggeredPhpunitDeprecationEvents = [];
 
     /**
-     * @psalm-var array<string,list<PhpunitErrorTriggered>>
+     * @var array<string,list<PhpunitErrorTriggered>>
      */
     private array $testTriggeredPhpunitErrorEvents = [];
 
     /**
-     * @psalm-var array<string,list<PhpunitWarningTriggered>>
+     * @var array<string,list<PhpunitWarningTriggered>>
      */
     private array $testTriggeredPhpunitWarningEvents = [];
 
     /**
-     * @psalm-var list<TestRunnerWarningTriggered>
+     * @var list<TestRunnerWarningTriggered>
      */
     private array $testRunnerTriggeredWarningEvents = [];
 
     /**
-     * @psalm-var list<TestRunnerDeprecationTriggered>
+     * @var list<TestRunnerDeprecationTriggered>
      */
     private array $testRunnerTriggeredDeprecationEvents = [];
 
     /**
-     * @psalm-var array<non-empty-string, Issue>
+     * @var array<non-empty-string, Issue>
      */
     private array $errors = [];
 
     /**
-     * @psalm-var array<non-empty-string, Issue>
+     * @var array<non-empty-string, Issue>
      */
     private array $deprecations = [];
 
     /**
-     * @psalm-var array<non-empty-string, Issue>
+     * @var array<non-empty-string, Issue>
      */
     private array $notices = [];
 
     /**
-     * @psalm-var array<non-empty-string, Issue>
+     * @var array<non-empty-string, Issue>
      */
     private array $warnings = [];
 
     /**
-     * @psalm-var array<non-empty-string, Issue>
+     * @var array<non-empty-string, Issue>
      */
     private array $phpDeprecations = [];
 
     /**
-     * @psalm-var array<non-empty-string, Issue>
+     * @var array<non-empty-string, Issue>
      */
     private array $phpNotices = [];
 
     /**
-     * @psalm-var array<non-empty-string, Issue>
+     * @var array<non-empty-string, Issue>
      */
     private array $phpWarnings = [];
 
@@ -153,7 +158,7 @@ final class Collector
      * @throws EventFacadeIsSealedException
      * @throws UnknownSubscriberTypeException
      */
-    public function __construct(Facade $facade, Source $source)
+    public function __construct(Facade $facade, IssueFilter $issueFilter)
     {
         $facade->registerSubscribers(
             new ExecutionStartedSubscriber($this),
@@ -163,6 +168,7 @@ final class Collector
             new TestPreparedSubscriber($this),
             new TestFinishedSubscriber($this),
             new BeforeTestClassMethodErroredSubscriber($this),
+            new AfterTestClassMethodErroredSubscriber($this),
             new TestErroredSubscriber($this),
             new TestFailedSubscriber($this),
             new TestMarkedIncompleteSubscriber($this),
@@ -182,7 +188,7 @@ final class Collector
             new TestRunnerTriggeredWarningSubscriber($this),
         );
 
-        $this->source = $source;
+        $this->issueFilter = $issueFilter;
     }
 
     public function result(): TestResult
@@ -209,6 +215,7 @@ final class Collector
             array_values($this->phpDeprecations),
             array_values($this->phpNotices),
             array_values($this->phpWarnings),
+            $this->numberOfIssuesIgnoredByBaseline,
         );
     }
 
@@ -226,6 +233,8 @@ final class Collector
         }
 
         $this->testSuiteSkippedEvents[] = $event;
+
+        $this->numberOfTestsRun += $event->testSuite()->count();
     }
 
     public function testSuiteStarted(TestSuiteStarted $event): void
@@ -235,19 +244,10 @@ final class Collector
         if (!$testSuite->isForTestClass()) {
             return;
         }
-
-        $this->currentTestSuiteForTestClassFailed = false;
     }
 
-    /**
-     * @throws NoDataSetFromDataProviderException
-     */
     public function testSuiteFinished(TestSuiteFinished $event): void
     {
-        if ($this->currentTestSuiteForTestClassFailed) {
-            return;
-        }
-
         $testSuite = $event->testSuite();
 
         if ($testSuite->isWithName()) {
@@ -260,6 +260,12 @@ final class Collector
             $test = $testSuite->tests()->asArray()[0];
 
             assert($test instanceof TestMethod);
+
+            foreach ($this->testFailedEvents as $testFailedEvent) {
+                if ($testFailedEvent->test()->isTestMethod() && $testFailedEvent->test()->methodName() === $test->methodName()) {
+                    return;
+                }
+            }
 
             PassedTests::instance()->testMethodPassed($test, null);
 
@@ -292,11 +298,14 @@ final class Collector
         $this->numberOfTestsRun++;
     }
 
+    public function afterTestClassMethodErrored(AfterLastTestMethodErrored $event): void
+    {
+        $this->testErroredEvents[] = $event;
+    }
+
     public function testErrored(Errored $event): void
     {
         $this->testErroredEvents[] = $event;
-
-        $this->currentTestSuiteForTestClassFailed = true;
 
         /*
          * @todo Eliminate this special case
@@ -313,8 +322,6 @@ final class Collector
     public function testFailed(Failed $event): void
     {
         $this->testFailedEvents[] = $event;
-
-        $this->currentTestSuiteForTestClassFailed = true;
     }
 
     public function testMarkedIncomplete(MarkedIncomplete $event): void
@@ -342,11 +349,13 @@ final class Collector
 
     public function testTriggeredDeprecation(DeprecationTriggered $event): void
     {
-        if (!$this->source->ignoreSuppressionOfDeprecations() && $event->wasSuppressed()) {
+        if (!$this->issueFilter->shouldBeProcessed($event)) {
             return;
         }
 
-        if ($this->source->restrictDeprecations() && !(new SourceFilter)->includes($this->source, $event->file())) {
+        if ($event->ignoredByBaseline()) {
+            $this->numberOfIssuesIgnoredByBaseline++;
+
             return;
         }
 
@@ -358,6 +367,7 @@ final class Collector
                 $event->line(),
                 $event->message(),
                 $event->test(),
+                $event->stackTrace(),
             );
 
             return;
@@ -368,11 +378,13 @@ final class Collector
 
     public function testTriggeredPhpDeprecation(PhpDeprecationTriggered $event): void
     {
-        if (!$this->source->ignoreSuppressionOfPhpDeprecations() && $event->wasSuppressed()) {
+        if (!$this->issueFilter->shouldBeProcessed($event)) {
             return;
         }
 
-        if ($this->source->restrictDeprecations() && !(new SourceFilter)->includes($this->source, $event->file())) {
+        if ($event->ignoredByBaseline()) {
+            $this->numberOfIssuesIgnoredByBaseline++;
+
             return;
         }
 
@@ -403,7 +415,7 @@ final class Collector
 
     public function testTriggeredError(ErrorTriggered $event): void
     {
-        if (!$this->source->ignoreSuppressionOfErrors() && $event->wasSuppressed()) {
+        if (!$this->issueFilter->shouldBeProcessed($event)) {
             return;
         }
 
@@ -425,11 +437,13 @@ final class Collector
 
     public function testTriggeredNotice(NoticeTriggered $event): void
     {
-        if (!$this->source->ignoreSuppressionOfNotices() && $event->wasSuppressed()) {
+        if (!$this->issueFilter->shouldBeProcessed($event)) {
             return;
         }
 
-        if ($this->source->restrictNotices() && !(new SourceFilter)->includes($this->source, $event->file())) {
+        if ($event->ignoredByBaseline()) {
+            $this->numberOfIssuesIgnoredByBaseline++;
+
             return;
         }
 
@@ -451,11 +465,13 @@ final class Collector
 
     public function testTriggeredPhpNotice(PhpNoticeTriggered $event): void
     {
-        if (!$this->source->ignoreSuppressionOfPhpNotices() && $event->wasSuppressed()) {
+        if (!$this->issueFilter->shouldBeProcessed($event)) {
             return;
         }
 
-        if ($this->source->restrictNotices() && !(new SourceFilter)->includes($this->source, $event->file())) {
+        if ($event->ignoredByBaseline()) {
+            $this->numberOfIssuesIgnoredByBaseline++;
+
             return;
         }
 
@@ -477,11 +493,13 @@ final class Collector
 
     public function testTriggeredWarning(WarningTriggered $event): void
     {
-        if (!$this->source->ignoreSuppressionOfWarnings() && $event->wasSuppressed()) {
+        if (!$this->issueFilter->shouldBeProcessed($event)) {
             return;
         }
 
-        if ($this->source->restrictWarnings() && !(new SourceFilter)->includes($this->source, $event->file())) {
+        if ($event->ignoredByBaseline()) {
+            $this->numberOfIssuesIgnoredByBaseline++;
+
             return;
         }
 
@@ -503,11 +521,13 @@ final class Collector
 
     public function testTriggeredPhpWarning(PhpWarningTriggered $event): void
     {
-        if (!$this->source->ignoreSuppressionOfPhpWarnings() && $event->wasSuppressed()) {
+        if (!$this->issueFilter->shouldBeProcessed($event)) {
             return;
         }
 
-        if ($this->source->restrictWarnings() && !(new SourceFilter)->includes($this->source, $event->file())) {
+        if ($event->ignoredByBaseline()) {
+            $this->numberOfIssuesIgnoredByBaseline++;
+
             return;
         }
 
@@ -603,7 +623,7 @@ final class Collector
     }
 
     /**
-     * @psalm-return non-empty-string
+     * @return non-empty-string
      */
     private function issueId(DeprecationTriggered|ErrorTriggered|NoticeTriggered|PhpDeprecationTriggered|PhpNoticeTriggered|PhpWarningTriggered|WarningTriggered $event): string
     {

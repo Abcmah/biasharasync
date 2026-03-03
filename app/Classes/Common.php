@@ -350,7 +350,7 @@ class Common
         }
 
         $folderPath = self::getFolderPath($folderString);
-
+    
         if ($request->hasFile('image') || $request->hasFile('file')) {
             $largeLogo  = $request->hasFile('image') ? $request->file('image') : $request->file('file');
 

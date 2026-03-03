@@ -2,7 +2,9 @@
 
 namespace Spatie\Html;
 
+use BackedEnum;
 use DateTimeImmutable;
+use Exception;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -26,6 +28,7 @@ use Spatie\Html\Elements\P;
 use Spatie\Html\Elements\Select;
 use Spatie\Html\Elements\Span;
 use Spatie\Html\Elements\Textarea;
+use UnitEnum;
 
 class Html
 {
@@ -34,13 +37,12 @@ class Html
     public const HTML_DATE_FORMAT = 'Y-m-d';
     public const HTML_TIME_FORMAT = 'H:i:s';
 
-    /** @var \Illuminate\Http\Request */
-    protected $request;
+    protected ?Request $request;
 
     /** @var \ArrayAccess|array */
     protected $model;
 
-    public function __construct(Request $request)
+    public function __construct(?Request $request = null)
     {
         $this->request = $request;
     }
@@ -129,7 +131,7 @@ class Html
     }
 
     /**
-     * @param \Spatie\Html\HtmlElement|string|null $contents
+     * @param \Spatie\Html\HtmlElement|string|iterable|int|float|null $contents
      *
      * @return \Spatie\Html\Elements\Div
      */
@@ -147,6 +149,17 @@ class Html
     public function email($name = null, $value = null)
     {
         return $this->input('email', $name, $value);
+    }
+
+    /**
+     * @param string|null $name
+     * @param string|null $value
+     *
+     * @return \Spatie\Html\Elements\Input
+     */
+    public function search($name = null, $value = null)
+    {
+        return $this->input('search', $name, $value);
     }
 
     /**
@@ -197,7 +210,7 @@ class Html
      *
      * @return \Spatie\Html\Elements\Input
      */
-    public function range($name = '', $value = '', $min = null, $max = null, $step = null)
+    public function range($name = '', $value = null, $min = null, $max = null, $step = null)
     {
         return $this->input('range', $name, $value)
             ->attributeIfNotNull($min, 'min', $min)
@@ -242,7 +255,7 @@ class Html
      */
     public function input($type = null, $name = null, $value = null)
     {
-        $hasValue = $name && ($type !== 'password' && ! is_null($this->old($name, $value)) || ! is_null($value));
+        $hasValue = ! is_null($value) || ($type !== 'password' && ! is_null($this->old($name, $value)));
 
         return Input::create()
             ->attributeIf($type, 'type', $type)
@@ -258,8 +271,9 @@ class Html
      */
     public function fieldset($legend = null)
     {
-        return $legend ?
-            Fieldset::create()->legend($legend) : Fieldset::create();
+        return $legend
+            ? Fieldset::create()->legend($legend)
+            : Fieldset::create();
     }
 
     /**
@@ -376,9 +390,9 @@ class Html
     public function number($name = null, $value = null, $min = null, $max = null, $step = null)
     {
         return $this->input('number', $name, $value)
-                ->attributeIfNotNull($min, 'min', $min)
-                ->attributeIfNotNull($max, 'max', $max)
-                ->attributeIfNotNull($step, 'step', $step);
+            ->attributeIfNotNull($min, 'min', $min)
+            ->attributeIfNotNull($max, 'max', $max)
+            ->attributeIfNotNull($step, 'step', $step);
     }
 
     /**
@@ -418,7 +432,7 @@ class Html
         return $this->input('radio', $name, $value)
             ->attributeIf($name, 'id', $value === null ? $name : ($name.'_'.Str::slug($value)))
             ->attributeIf(! is_null($value), 'value', $value)
-            ->attributeIf((! is_null($value) && $this->old($name) == $value) || $checked, 'checked');
+            ->attributeIf((! is_null($value) && $this->old($name) === $value) || $checked, 'checked');
     }
 
     /**
@@ -523,7 +537,7 @@ class Html
         return $this
             ->hidden()
             ->name('_token')
-            ->value($this->request->session()->token());
+            ->value(($this->request ?? request())->session()->token());
     }
 
     /**
@@ -581,7 +595,7 @@ class Html
     protected function old($name, $value = null)
     {
         if (empty($name)) {
-            return;
+            return $value;
         }
 
         // Convert array format (sth[1]) to dot notation (sth.1)
@@ -590,11 +604,15 @@ class Html
         // If there's no default value provided, the html builder currently
         // has a model assigned and there aren't old input items,
         // try to retrieve a value from the model.
-        if (is_null($value) && $this->model && empty($this->request->old())) {
-            $value = data_get($this->model, $name) ?? '';
+        $request = $this->request ?? request();
+
+        if (is_null($value) && $this->model && empty($request->old())) {
+            $value = ($value = data_get($this->model, $name)) instanceof UnitEnum
+                ? $this->getEnumValue($value)
+                : $value;
         }
 
-        return $this->request->old($name, $value);
+        return $request->old($name, $value);
     }
 
     /**
@@ -643,8 +661,21 @@ class Html
             $date = new DateTimeImmutable($value);
 
             return $date->format($format);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $value;
         }
+    }
+
+    /**
+     * Get the value from the given enum.
+     *
+     * @param  \UnitEnum|\BackedEnum  $value
+     * @return string|int
+     */
+    protected function getEnumValue($value)
+    {
+        return $value instanceof BackedEnum
+            ? $value->value
+            : $value->name;
     }
 }

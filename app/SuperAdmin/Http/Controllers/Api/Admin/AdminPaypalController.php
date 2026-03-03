@@ -51,6 +51,10 @@ class AdminPaypalController extends ApiBaseController
     {
         parent::__construct();
 
+        if (!class_exists(\Srmklive\PayPal\Services\PayPal::class)) {
+            return;
+        }
+
         $paypalSettings = GlobalSettings::withoutGlobalScope(CompanyScope::class)
             ->where('setting_type', 'payment_settings')
             ->where('name_key', 'paypal')

@@ -60,7 +60,7 @@ class RolesController extends ApiBaseController
 				$permissions[] = $this->getIdFromHash($allPermission);
 			}
 
-			$role->savePermissions($permissions);
+			$role->syncPermissions($permissions);
 		}
 
 		return $role;

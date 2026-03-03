@@ -13,6 +13,7 @@
 namespace PHPOpenSourceSaver\JWTAuth\Providers;
 
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use Namshi\JOSE\JWS;
 use PHPOpenSourceSaver\JWTAuth\Blacklist;
@@ -102,6 +103,12 @@ abstract class AbstractServiceProvider extends ServiceProvider
                 $app['request'],
                 $app['events']
             );
+
+            if (Arr::has($config, 'ttl')) {
+                $guard->setTTL(Arr::get($config, 'ttl'));
+            } else {
+                $guard->setTTL($app->make('config')->get('jwt.ttl'));
+            }
 
             $app->refresh('request', $guard, 'setRequest');
 
@@ -206,6 +213,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
             );
 
             return $instance->setBlacklistEnabled((bool) $app->make('config')->get('jwt.blacklist_enabled'))
+                ->setRefreshIat((bool) $app->make('config')->get('jwt.refresh_iat', false))
                 ->setPersistentClaims($app->make('config')->get('jwt.persistent_claims'))
                 ->setBlackListExceptionEnabled((bool) $app->make('config')->get('jwt.show_black_list_exception', 0));
         });
@@ -333,8 +341,6 @@ abstract class AbstractServiceProvider extends ServiceProvider
      *
      * @param Application $app
      * @param string      $key
-     *
-     * @return mixed
      */
     protected function getConfigInstance($app, $key)
     {

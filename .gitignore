@@ -17,6 +17,7 @@ yarn-error.log
 /.vscode
 /.history
 .history/*
+/vendor_old_working
 # /public/css/*
 # /public/js/*
 /public/uploads/*

@@ -20,8 +20,6 @@ class Collection extends IlluminateCollection
     /**
      * Create a new collection.
      *
-     * @param mixed $items
-     *
      * @return void
      */
     public function __construct($items = [])
@@ -33,11 +31,10 @@ class Collection extends IlluminateCollection
      * Get a Claim instance by it's unique name.
      *
      * @param string $name
-     * @param mixed  $default
      *
      * @return Claim
      */
-    public function getByClaimName($name, callable $callback = null, $default = null)
+    public function getByClaimName($name, ?callable $callback = null, $default = null)
     {
         return $this->filter(function (Claim $claim) use ($name) {
             return $claim->getName() === $name;
@@ -69,13 +66,21 @@ class Collection extends IlluminateCollection
     /**
      * Determine if the Collection contains all of the given keys.
      *
-     * @param mixed $claims
-     *
      * @return bool
      */
     public function hasAllClaims($claims)
     {
-        return count($claims) && (new static($claims))->diff($this->keys())->isEmpty();
+        if (!count($claims)) {
+            return false;
+        }
+
+        foreach ($claims as $claim) {
+            if (!$this->has($claim)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -90,9 +95,6 @@ class Collection extends IlluminateCollection
         })->toArray();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function getArrayableItems($items)
     {
         return $this->sanitizeClaims($items);
@@ -100,8 +102,6 @@ class Collection extends IlluminateCollection
 
     /**
      * Ensure that the given claims array is keyed by the claim name.
-     *
-     * @param mixed $items
      *
      * @return array
      */

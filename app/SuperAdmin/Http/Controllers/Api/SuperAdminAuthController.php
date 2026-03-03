@@ -7,12 +7,11 @@ use App\Http\Controllers\Api\AuthController;
 use App\Models\Company;
 use App\Models\Currency;
 use App\Models\PaymentMode;
-use App\SuperAdmin\Models\GlobalCompany;
 use App\Models\Settings;
-use App\Models\User;
 use App\Models\Warehouse;
 use App\Scopes\CompanyScope;
 use App\SuperAdmin\Http\Requests\Api\Auth\LoginRequest;
+use App\SuperAdmin\Models\GlobalCompany;
 use Examyou\RestAPI\ApiResponse;
 use Examyou\RestAPI\Exceptions\ApiException;
 
@@ -51,64 +50,49 @@ class SuperAdminAuthController extends AuthController
 
     public function superAdminLogin(LoginRequest $request)
     {
-        // Removing all sessions before login
-        session()->flush();
-
-        $phone = "";
-        $email = "";
-
         $credentials = [
-            'password' =>  $request->password
+            'password' => $request->password,
         ];
-        if (is_numeric($request->get('email'))) {
+
+        if (is_numeric($request->email)) {
             $credentials['phone'] = $request->email;
-            $phone = $request->email;
         } else {
             $credentials['email'] = $request->email;
-            $email = $request->email;
         }
 
-        // For checking user
-        $user = User::select('*');
-        if ($email != '') {
-            $user = $user->where('email', $email);
-        } else if ($phone != '') {
-            $user = $user->where('phone', $phone);
-        }
-        $user = $user->first();
+        $token = auth('api')->attempt($credentials);
 
-        // Adding user type according to email/phone
-        if ($user) {
-            if ($user->user_type == 'super_admins') {
-                $credentials['user_type'] = 'super_admins';
-                $credentials['is_superadmin'] = 1;
-                $userCompany = GlobalCompany::where('id', $user->company_id)->first();
-            } else {
-                $credentials['user_type'] = 'staff_members';
-                $userCompany = Company::where('id', $user->company_id)->first();
-            }
-        }
-
-        if (!$token = auth('api')->attempt($credentials)) {
+        if (!$token) {
             throw new ApiException('These credentials do not match our records.');
-        } else if ($userCompany->status === 'pending') {
+        }
+
+        $user = auth('api')->user();
+
+        if ($user->user_type === 'super_admins') {
+            $userCompany = GlobalCompany::find($user->company_id);
+        } else {
+            $userCompany = Company::find($user->company_id);
+        }
+
+        if (!$userCompany || $userCompany->status === 'pending') {
             throw new ApiException('Your company not verified.');
-        } else if ($userCompany->status === 'inactive') {
+        } elseif ($userCompany->status === 'inactive') {
             throw new ApiException('Company account deactivated.');
-        } else if (auth('api')->user()->status === 'waiting') {
+        } elseif ($user->status === 'waiting') {
             throw new ApiException('User not verified.');
-        } else if (auth('api')->user()->status === 'disabled') {
+        } elseif ($user->status === 'disabled') {
             throw new ApiException('Account deactivated.');
         }
 
-        $company = company();
-        $response = $this->respondWithToken($token);
+        $response = $this->respondWithToken($token, $user);
+
         $addMenuSetting = Settings::where('setting_type', 'shortcut_menus')->first();
-        $response['app'] = $company;
+
+        $response['app'] = $userCompany;
         $response['shortcut_menus'] = $addMenuSetting;
         $response['email_setting_verified'] = $this->emailSettingVerified();
         $response['visible_subscription_modules'] = Common::allVisibleSubscriptionModules();
 
-        return ApiResponse::make('Loggged in successfull', $response);
+        return ApiResponse::make('Logged in successfully', $response);
     }
 }

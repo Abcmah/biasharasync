@@ -407,6 +407,7 @@ class ApiController extends \Illuminate\Routing\Controller
 					if (!in_array($primaryKey, $fields)) {
 						$fields[] = $primaryKey;
 					}
+					$fields = array_unique($fields);
 
 					$fields = array_map(function ($name) use ($tableName) {
 						return $tableName . "." . $name;
@@ -443,6 +444,7 @@ class ApiController extends \Illuminate\Routing\Controller
 						// need to be attached
 						if ($q instanceof BelongsTo) {
 							$fields[] = $q->getOwnerKeyName();
+							$fields = array_unique($fields);
 
 							if (strpos($key, ".") !== false) {
 								$parts = explode(".", $key);
@@ -452,12 +454,15 @@ class ApiController extends \Illuminate\Routing\Controller
 							}
 						} else if ($q instanceof HasOne) {
 							$fields[] = $q->getQualifiedForeignKeyName();
+							$fields = array_unique($fields);
 
 							// This will be used to hide this foreign key field
 							// in the processAppends function later
 							$relations[$key]["foreign"] = $q->getQualifiedForeignKeyName();
 						} else if ($q instanceof HasMany) {
 							$fields[] = $q->getQualifiedForeignKeyName();
+							$fields = array_unique($fields);
+							
 							$relations[$key]["foreign"] = $q->getQualifiedForeignKeyName();
 
 							$q->orderBy($primaryKey, ($relation["order"] == "chronological") ? "ASC" : "DESC");

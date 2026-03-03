@@ -3,6 +3,7 @@
 namespace Spatie\Html\Elements;
 
 use Spatie\Html\BaseElement;
+use Spatie\Html\Elements\Attributes\Autocomplete;
 use Spatie\Html\Elements\Attributes\Autofocus;
 use Spatie\Html\Elements\Attributes\Disabled;
 use Spatie\Html\Elements\Attributes\MinMaxLength;
@@ -11,9 +12,21 @@ use Spatie\Html\Elements\Attributes\Placeholder;
 use Spatie\Html\Elements\Attributes\ReadonlyTrait;
 use Spatie\Html\Elements\Attributes\Required;
 
+/**
+ * @method static valueIf(bool $condition, string|null $value)
+ * @method static valueIfNotNull(bool $condition, string|null $value)
+ * @method static valueUnless(bool $condition, string|null $value)
+ * @method static rowsIf(bool $condition, int $rows)
+ * @method static rowsIfNotNull(bool $condition, int $rows)
+ * @method static rowsUnless(bool $condition, int $rows)
+ * @method static colsIf(bool $condition, int $cols)
+ * @method static colsIfNotNull(bool $condition, int $cols)
+ * @method static colsUnless(bool $condition, int $cols)
+ */
 class Textarea extends BaseElement
 {
     use Autofocus;
+    use Autocomplete;
     use Placeholder;
     use Name;
     use Required;

@@ -2,6 +2,7 @@
 
 namespace Laravel\Cashier;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Money\Currencies\ISOCurrencies;
 use Money\Currency;
 use Money\Formatter\IntlMoneyFormatter;
@@ -10,6 +11,7 @@ use NumberFormatter;
 use Stripe\BaseStripeClient;
 use Stripe\Customer as StripeCustomer;
 use Stripe\StripeClient;
+use Stripe\Util\ApiVersion as StripeApiVersion;
 
 class Cashier
 {
@@ -18,14 +20,14 @@ class Cashier
      *
      * @var string
      */
-    const VERSION = '14.12.4';
+    const VERSION = '16.3.0';
 
     /**
      * The Stripe API version.
      *
      * @var string
      */
-    const STRIPE_VERSION = '2022-11-15';
+    const STRIPE_VERSION = StripeApiVersion::CURRENT;
 
     /**
      * The base URL for the Stripe API.
@@ -40,13 +42,6 @@ class Cashier
      * @var callable
      */
     protected static $formatCurrencyUsing;
-
-    /**
-     * Indicates if Cashier migrations will be run.
-     *
-     * @var bool
-     */
-    public static $runsMigrations = true;
 
     /**
      * Indicates if Cashier routes will be registered.
@@ -103,11 +98,17 @@ class Cashier
      * @param  \Stripe\Customer|string|null  $stripeId
      * @return \Laravel\Cashier\Billable|null
      */
-    public static function findBillable($stripeId)
+    public static function findBillable(StripeCustomer|string|null $stripeId)
     {
         $stripeId = $stripeId instanceof StripeCustomer ? $stripeId->id : $stripeId;
 
-        return $stripeId ? (new static::$customerModel)->where('stripe_id', $stripeId)->first() : null;
+        $model = static::$customerModel;
+
+        $builder = in_array(SoftDeletes::class, class_uses_recursive($model))
+            ? $model::withTrashed()
+            : new $model;
+
+        return $stripeId ? $builder->where('stripe_id', $stripeId)->first() : null;
     }
 
     /**
@@ -118,11 +119,13 @@ class Cashier
      */
     public static function stripe(array $options = [])
     {
-        return new StripeClient(array_merge([
+        $config = array_merge([
             'api_key' => $options['api_key'] ?? config('cashier.secret'),
             'stripe_version' => static::STRIPE_VERSION,
             'api_base' => static::$apiBaseUrl,
-        ], $options));
+        ], $options);
+
+        return app(StripeClient::class, ['config' => $config]);
     }
 
     /**
@@ -145,7 +148,7 @@ class Cashier
      * @param  array  $options
      * @return string
      */
-    public static function formatAmount($amount, $currency = null, $locale = null, array $options = [])
+    public static function formatAmount(int $amount, ?string $currency = null, ?string $locale = null, array $options = []): string
     {
         if (static::$formatCurrencyUsing) {
             return call_user_func(static::$formatCurrencyUsing, $amount, $currency, $locale, $options);
@@ -164,18 +167,6 @@ class Cashier
         $moneyFormatter = new IntlMoneyFormatter($numberFormatter, new ISOCurrencies());
 
         return $moneyFormatter->format($money);
-    }
-
-    /**
-     * Configure Cashier to not register its migrations.
-     *
-     * @return static
-     */
-    public static function ignoreMigrations()
-    {
-        static::$runsMigrations = false;
-
-        return new static;
     }
 
     /**
@@ -229,10 +220,10 @@ class Cashier
     /**
      * Set the customer model class name.
      *
-     * @param  string  $customerModel
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $customerModel
      * @return void
      */
-    public static function useCustomerModel($customerModel)
+    public static function useCustomerModel(string $customerModel): void
     {
         static::$customerModel = $customerModel;
     }
@@ -240,10 +231,10 @@ class Cashier
     /**
      * Set the subscription model class name.
      *
-     * @param  string  $subscriptionModel
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $subscriptionModel
      * @return void
      */
-    public static function useSubscriptionModel($subscriptionModel)
+    public static function useSubscriptionModel(string $subscriptionModel): void
     {
         static::$subscriptionModel = $subscriptionModel;
     }
@@ -251,10 +242,10 @@ class Cashier
     /**
      * Set the subscription item model class name.
      *
-     * @param  string  $subscriptionItemModel
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $subscriptionItemModel
      * @return void
      */
-    public static function useSubscriptionItemModel($subscriptionItemModel)
+    public static function useSubscriptionItemModel(string $subscriptionItemModel): void
     {
         static::$subscriptionItemModel = $subscriptionItemModel;
     }

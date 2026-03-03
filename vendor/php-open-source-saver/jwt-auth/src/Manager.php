@@ -17,6 +17,7 @@ use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenBlacklistedException;
 use PHPOpenSourceSaver\JWTAuth\Support\CustomClaims;
 use PHPOpenSourceSaver\JWTAuth\Support\RefreshFlow;
+use PHPOpenSourceSaver\JWTAuth\Support\Utils;
 
 class Manager
 {
@@ -50,6 +51,13 @@ class Manager
      * @var bool
      */
     protected $blacklistEnabled = true;
+
+    /**
+     * The refresh iat flag.
+     *
+     * @var bool
+     */
+    protected $refreshIat = false;
 
     /**
      * the persistent claims.
@@ -94,7 +102,7 @@ class Manager
      *
      * @return Payload
      *
-     * @throws \PHPOpenSourceSaver\JWTAuth\Exceptions\TokenBlacklistedException
+     * @throws TokenBlacklistedException
      */
     public function decode(Token $token, $checkBlacklist = true)
     {
@@ -106,10 +114,10 @@ class Manager
             ->make();
 
         if (
-            $checkBlacklist &&
-            $this->blacklistEnabled &&
-            $this->getBlackListExceptionEnabled() &&
-            $this->blacklist->has($payload)
+            $checkBlacklist
+            && $this->blacklistEnabled
+            && $this->getBlackListExceptionEnabled()
+            && $this->blacklist->has($payload)
         ) {
             throw new TokenBlacklistedException('The token has been blacklisted');
         }
@@ -181,7 +189,7 @@ class Manager
             $persistentClaims,
             [
                 'sub' => $payload['sub'],
-                'iat' => $payload['iat'],
+                'iat' => $this->refreshIat ? Utils::now()->timestamp : $payload['iat'],
             ]
         );
     }
@@ -263,6 +271,20 @@ class Manager
     public function setPersistentClaims(array $claims)
     {
         $this->persistentClaims = $claims;
+
+        return $this;
+    }
+
+    /**
+     * Set whether the refresh iat is enabled.
+     *
+     * @param bool $enabled
+     *
+     * @return $this
+     */
+    public function setRefreshIat($refreshIat)
+    {
+        $this->refreshIat = $refreshIat;
 
         return $this;
     }

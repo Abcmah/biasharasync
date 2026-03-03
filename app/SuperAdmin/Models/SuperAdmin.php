@@ -8,16 +8,17 @@ use App\Models\BaseModel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
-use Trebol\Entrust\Traits\EntrustUserTrait;
+use Laratrust\Contracts\LaratrustUser;
+use Laratrust\Traits\HasRolesAndPermissions;
 
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Hash as FacadesHash;
 
-class SuperAdmin extends BaseModel implements AuthenticatableContract, JWTSubject
+class SuperAdmin extends BaseModel implements AuthenticatableContract, JWTSubject, LaratrustUser
 {
-    use Notifiable, EntrustUserTrait, Authenticatable, HasFactory;
+    use Notifiable, HasRolesAndPermissions, Authenticatable, HasFactory;
 
     protected  $table = 'users';
 

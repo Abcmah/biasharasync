@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Classes\Common;
 use App\Http\Controllers\ApiBaseController;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Warehouse\DeleteRequest;
 use App\Http\Requests\Api\Warehouse\IndexRequest;
 use App\Http\Requests\Api\Warehouse\StoreRequest;
-use App\Http\Requests\Api\Warehouse\UpdateRequest;
-use App\Http\Requests\Api\Warehouse\DeleteRequest;
 use App\Http\Requests\Api\Warehouse\UpdateOnlineStoreStatusRequest;
+use App\Http\Requests\Api\Warehouse\UpdateRequest;
 use App\Models\Customer;
 use App\Models\FrontWebsiteSettings;
 use App\Models\Product;
@@ -54,6 +55,7 @@ class WarehouseController extends ApiBaseController
     public function stored(Warehouse $warehouse)
     {
         $company = company();
+ 
         $companyWarehouse = $company->warehouse;
 
         // Front website settings
@@ -118,13 +120,6 @@ class WarehouseController extends ApiBaseController
 
     public function updated(Warehouse $warehouse)
     {
-        $sessionWarehouse = warehouse();
-
-        // Reseting session warehouse
-        if ($sessionWarehouse && $sessionWarehouse->id && $sessionWarehouse->id == $warehouse->id) {
-            session(['warehouse' => $warehouse]);
-        }
-
         return $warehouse;
     }
 

@@ -19,26 +19,45 @@ interface InvocationStubber
 {
     public function will(Stub $stub): Identity;
 
+    /**
+     * @return $this
+     */
     public function willReturn(mixed $value, mixed ...$nextValues): self;
 
+    /**
+     * @return $this
+     */
     public function willReturnReference(mixed &$reference): self;
 
     /**
-     * @psalm-param array<int, array<int, mixed>> $valueMap
+     * @param array<int, array<int, mixed>> $valueMap
+     *
+     * @return $this
      */
     public function willReturnMap(array $valueMap): self;
 
+    /**
+     * @return $this
+     */
     public function willReturnArgument(int $argumentIndex): self;
 
+    /**
+     * @return $this
+     */
     public function willReturnCallback(callable $callback): self;
 
+    /**
+     * @return $this
+     */
     public function willReturnSelf(): self;
 
     /**
-     * @deprecated Use <code>$double->willReturn(1, 2, 3)</code> instead of <code>$double->willReturnOnConsecutiveCalls(1, 2, 3)</code>
-     * @see https://github.com/sebastianbergmann/phpunit/issues/5425
+     * @return $this
      */
     public function willReturnOnConsecutiveCalls(mixed ...$values): self;
 
+    /**
+     * @return $this
+     */
     public function willThrowException(Throwable $exception): self;
 }

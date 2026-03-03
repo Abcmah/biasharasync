@@ -13,10 +13,14 @@ use function array_flip;
 use function array_key_exists;
 use function array_map;
 use function array_merge;
+use function array_pop;
+use function assert;
 use function count;
 use function is_string;
+use function range;
 use function strtolower;
 use PHPUnit\Framework\Constraint\Constraint;
+use PHPUnit\Framework\InvalidArgumentException;
 use PHPUnit\Framework\MockObject\ConfigurableMethod;
 use PHPUnit\Framework\MockObject\IncompatibleReturnValueException;
 use PHPUnit\Framework\MockObject\InvocationHandler;
@@ -27,6 +31,7 @@ use PHPUnit\Framework\MockObject\MethodNameAlreadyConfiguredException;
 use PHPUnit\Framework\MockObject\MethodNameNotConfiguredException;
 use PHPUnit\Framework\MockObject\MethodParametersAlreadyConfiguredException;
 use PHPUnit\Framework\MockObject\Rule;
+use PHPUnit\Framework\MockObject\Runtime\PropertyHook;
 use PHPUnit\Framework\MockObject\Stub\ConsecutiveCalls;
 use PHPUnit\Framework\MockObject\Stub\Exception;
 use PHPUnit\Framework\MockObject\Stub\ReturnArgument;
@@ -47,12 +52,12 @@ final class InvocationMocker implements InvocationStubber, MethodNameMatch
     private readonly Matcher $matcher;
 
     /**
-     * @psalm-var list<ConfigurableMethod>
+     * @var list<ConfigurableMethod>
      */
     private readonly array $configurableMethods;
 
     /**
-     * @psalm-var ?array<string, int>
+     * @var ?array<string, int>
      */
     private ?array $configurableMethodNames = null;
 
@@ -116,7 +121,45 @@ final class InvocationMocker implements InvocationStubber, MethodNameMatch
 
     public function willReturnMap(array $valueMap): self
     {
-        $stub = new ReturnValueMap($valueMap);
+        $method = $this->configuredMethod();
+
+        assert($method instanceof ConfigurableMethod);
+
+        $numberOfParameters = $method->numberOfParameters();
+        $defaultValues      = $method->defaultParameterValues();
+        $hasDefaultValues   = !empty($defaultValues);
+
+        $_valueMap = [];
+
+        foreach ($valueMap as $mapping) {
+            $numberOfConfiguredParameters = count($mapping) - 1;
+
+            if ($numberOfConfiguredParameters === $numberOfParameters || !$hasDefaultValues) {
+                $_valueMap[] = $mapping;
+
+                continue;
+            }
+
+            $_mapping    = [];
+            $returnValue = array_pop($mapping);
+
+            foreach (range(0, $numberOfParameters - 1) as $i) {
+                if (array_key_exists($i, $mapping)) {
+                    $_mapping[] = $mapping[$i];
+
+                    continue;
+                }
+
+                if (array_key_exists($i, $defaultValues)) {
+                    $_mapping[] = $defaultValues[$i];
+                }
+            }
+
+            $_mapping[]  = $returnValue;
+            $_valueMap[] = $_mapping;
+        }
+
+        $stub = new ReturnValueMap($_valueMap);
 
         return $this->will($stub);
     }
@@ -142,10 +185,6 @@ final class InvocationMocker implements InvocationStubber, MethodNameMatch
         return $this->will($stub);
     }
 
-    /**
-     * @deprecated Use <code>$double->willReturn(1, 2, 3)</code> instead of <code>$double->willReturnOnConsecutiveCalls(1, 2, 3)</code>
-     * @see https://github.com/sebastianbergmann/phpunit/issues/5425
-     */
     public function willReturnOnConsecutiveCalls(mixed ...$values): self
     {
         $stub = new ConsecutiveCalls($values);
@@ -202,23 +241,29 @@ final class InvocationMocker implements InvocationStubber, MethodNameMatch
     }
 
     /**
-     * @throws \PHPUnit\Framework\InvalidArgumentException
+     * @throws InvalidArgumentException
      * @throws MethodCannotBeConfiguredException
      * @throws MethodNameAlreadyConfiguredException
      *
      * @return $this
      */
-    public function method(Constraint|string $constraint): self
+    public function method(Constraint|PropertyHook|string $constraint): self
     {
         if ($this->matcher->hasMethodNameRule()) {
             throw new MethodNameAlreadyConfiguredException;
         }
 
+        if ($constraint instanceof PropertyHook) {
+            $constraint = $constraint->asString();
+        }
+
         if (is_string($constraint)) {
-            $this->configurableMethodNames ??= array_flip(array_map(
-                static fn (ConfigurableMethod $configurable) => strtolower($configurable->name()),
-                $this->configurableMethods,
-            ));
+            $this->configurableMethodNames ??= array_flip(
+                array_map(
+                    static fn (ConfigurableMethod $configurable) => strtolower($configurable->name()),
+                    $this->configurableMethods,
+                ),
+            );
 
             if (!array_key_exists(strtolower($constraint), $this->configurableMethodNames)) {
                 throw new MethodCannotBeConfiguredException($constraint);
@@ -263,6 +308,8 @@ final class InvocationMocker implements InvocationStubber, MethodNameMatch
     }
 
     /**
+     * @param array<mixed> $values
+     *
      * @throws IncompatibleReturnValueException
      */
     private function ensureTypeOfReturnValues(array $values): void

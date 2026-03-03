@@ -9,27 +9,34 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Laravel\Cashier\Exceptions\InvalidInvoice;
 use Laravel\Cashier\Invoice;
+use Laravel\Cashier\InvoicePayment;
 use Laravel\Cashier\Payment;
 use LogicException;
 use Stripe\Exception\CardException as StripeCardException;
 use Stripe\Exception\InvalidRequestException as StripeInvalidRequestException;
+use Stripe\Price as StripePrice;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 trait ManagesInvoices
 {
+    use InteractsWithStripe;
+
     /**
      * Add an invoice item to the customer's upcoming invoice.
      *
      * @param  string  $description
-     * @param  int  $amount
+     * @param  int|null  $amount
      * @param  array  $options
      * @return \Stripe\InvoiceItem
      */
-    public function tab($description, $amount, array $options = [])
+    public function tab(string $description, ?int $amount, array $options = [])
     {
         if ($this->isAutomaticTaxEnabled() && ! array_key_exists('price_data', $options)) {
-            throw new LogicException('When using automatic tax calculation, you need to define the "price_data" in the options.');
+            throw new LogicException(
+                'When using automatic tax calculation, you must include "price_data" in the provided options array.'
+            );
         }
 
         $this->assertCustomerExists();
@@ -42,16 +49,19 @@ trait ManagesInvoices
 
         if (array_key_exists('price_data', $options)) {
             $options['price_data'] = array_merge([
-                'unit_amount' => $amount,
+                'unit_amount_decimal' => $amount,
                 'currency' => $this->preferredCurrency(),
             ], $options['price_data']);
         } elseif (array_key_exists('quantity', $options)) {
-            $options['unit_amount'] = $options['unit_amount'] ?? $amount;
+            $options['unit_amount_decimal'] = $options['unit_amount_decimal'] ?? $amount;
         } else {
             $options['amount'] = $amount;
         }
 
-        return $this->stripe()->invoiceItems->create($options);
+        /** @var \Stripe\Service\InvoiceItemService $invoiceItems */
+        $invoiceItemsService = static::stripe()->invoiceItems;
+
+        return $invoiceItemsService->create($options);
     }
 
     /**
@@ -65,7 +75,7 @@ trait ManagesInvoices
      *
      * @throws \Laravel\Cashier\Exceptions\IncompletePayment
      */
-    public function invoiceFor($description, $amount, array $tabOptions = [], array $invoiceOptions = [])
+    public function invoiceFor(string $description, int $amount, array $tabOptions = [], array $invoiceOptions = []): Invoice
     {
         $this->tab($description, $amount, $tabOptions);
 
@@ -75,22 +85,25 @@ trait ManagesInvoices
     /**
      * Add an invoice item for a specific Price ID to the customer's upcoming invoice.
      *
-     * @param  string  $price
+     * @param  \Stripe\Price|string  $price
      * @param  int  $quantity
      * @param  array  $options
      * @return \Stripe\InvoiceItem
      */
-    public function tabPrice($price, $quantity = 1, array $options = [])
+    public function tabPrice(StripePrice|string $price, int $quantity = 1, array $options = [])
     {
         $this->assertCustomerExists();
 
         $options = array_merge([
             'customer' => $this->stripe_id,
-            'price' => $price,
+            'pricing' => ['price' => $price],
             'quantity' => $quantity,
         ], $options);
 
-        return $this->stripe()->invoiceItems->create($options);
+        /** @var \Stripe\Service\InvoiceItemService $invoiceItems */
+        $invoiceItemsService = static::stripe()->invoiceItems;
+
+        return $invoiceItemsService->create($options);
     }
 
     /**
@@ -104,7 +117,7 @@ trait ManagesInvoices
      *
      * @throws \Laravel\Cashier\Exceptions\IncompletePayment
      */
-    public function invoicePrice($price, $quantity = 1, array $tabOptions = [], array $invoiceOptions = [])
+    public function invoicePrice(StripePrice|string $price, int $quantity = 1, array $tabOptions = [], array $invoiceOptions = []): Invoice
     {
         $this->tabPrice($price, $quantity, $tabOptions);
 
@@ -119,14 +132,13 @@ trait ManagesInvoices
      *
      * @throws \Laravel\Cashier\Exceptions\IncompletePayment
      */
-    public function invoice(array $options = [])
+    public function invoice(array $options = []): Invoice
     {
         try {
             $payOptions = Arr::only($options, $payOptionKeys = [
                 'forgive',
                 'mandate',
                 'off_session',
-                'paid_out_of_band',
                 'payment_method',
                 'source',
             ]);
@@ -138,15 +150,28 @@ trait ManagesInvoices
             ], $options));
 
             return $invoice->chargesAutomatically() ? $invoice->pay($payOptions) : $invoice->send();
-        } catch (StripeCardException) {
-            $payment = new Payment(
-                $this->stripe()->paymentIntents->retrieve(
-                    $invoice->asStripeInvoice()->refresh()->payment_intent,
-                    ['expand' => ['invoice.subscription']]
-                )
-            );
+        } catch (StripeCardException $exception) {
+            // Get the latest payment from the invoice payments...
+            $stripeInvoice = $invoice->refresh(['payments'])->asStripeInvoice();
 
-            $payment->validate();
+            $invoicePayments = $stripeInvoice->payments->data;
+
+            if (! empty($invoicePayments)) {
+                $latestPayment = end($invoicePayments);
+
+                if ($latestPayment->payment && $latestPayment->payment->payment_intent) {
+                    $payment = new Payment(
+                        static::stripe()->paymentIntents->retrieve(
+                            $latestPayment->payment->payment_intent,
+                            ['expand' => ['invoice.subscription']]
+                        )
+                    );
+
+                    $payment->validate();
+                }
+            }
+
+            throw $exception;
         }
     }
 
@@ -156,20 +181,27 @@ trait ManagesInvoices
      * @param  array  $options
      * @return \Laravel\Cashier\Invoice
      */
-    public function createInvoice(array $options = [])
+    public function createInvoice(array $options = []): Invoice
     {
         $this->assertCustomerExists();
+
+        $stripeCustomer = $this->asStripeCustomer();
 
         $parameters = array_merge([
             'automatic_tax' => $this->automaticTaxPayload(),
             'customer' => $this->stripe_id,
+            'currency' => $stripeCustomer->currency ?? config('cashier.currency'),
         ], $options);
+
+        if (isset($parameters['subscription'])) {
+            unset($parameters['currency']);
+        }
 
         if (array_key_exists('subscription', $parameters)) {
             unset($parameters['pending_invoice_items_behavior']);
         }
 
-        $stripeInvoice = $this->stripe()->invoices->create($parameters);
+        $stripeInvoice = static::stripe()->invoices->create($parameters);
 
         return new Invoice($this, $stripeInvoice);
     }
@@ -180,10 +212,10 @@ trait ManagesInvoices
      * @param  array  $options
      * @return \Laravel\Cashier\Invoice|null
      */
-    public function upcomingInvoice(array $options = [])
+    public function upcomingInvoice(array $options = []): ?Invoice
     {
         if (! $this->hasStripeId()) {
-            return;
+            return null;
         }
 
         $parameters = array_merge([
@@ -191,13 +223,37 @@ trait ManagesInvoices
             'customer' => $this->stripe_id,
         ], $options);
 
+        // For the new Create Preview Invoice API, we need to provide specific details....
+        if (! $this->hasRequiredPreviewDetails($parameters)) {
+            $activeSubscription = $this->subscriptions()->active()->first();
+
+            if ($activeSubscription) {
+                $parameters['subscription'] = $activeSubscription->stripe_id;
+            }
+        }
+
         try {
-            $stripeInvoice = $this->stripe()->invoices->upcoming($parameters);
+            $stripeInvoice = static::stripe()->invoices->createPreview($parameters);
 
             return new Invoice($this, $stripeInvoice, $parameters);
         } catch (StripeInvalidRequestException $exception) {
-            //
+            return null;
         }
+    }
+
+    /**
+     * Check if the parameters contain the required details for the Create Preview Invoice API.
+     *
+     * @param  array  $parameters
+     * @return bool
+     */
+    protected function hasRequiredPreviewDetails(array $parameters): bool
+    {
+        return isset($parameters['subscription']) ||
+               isset($parameters['subscription_details']) ||
+               isset($parameters['schedule']) ||
+               isset($parameters['schedule_details']) ||
+               isset($parameters['invoice_items']);
     }
 
     /**
@@ -206,12 +262,12 @@ trait ManagesInvoices
      * @param  string  $id
      * @return \Laravel\Cashier\Invoice|null
      */
-    public function findInvoice($id)
+    public function findInvoice(string $id): ?Invoice
     {
         $stripeInvoice = null;
 
         try {
-            $stripeInvoice = $this->stripe()->invoices->retrieve($id);
+            $stripeInvoice = static::stripe()->invoices->retrieve($id);
         } catch (StripeInvalidRequestException $exception) {
             //
         }
@@ -228,7 +284,7 @@ trait ManagesInvoices
      * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      */
-    public function findInvoiceOrFail($id)
+    public function findInvoiceOrFail(string $id): Invoice
     {
         try {
             $invoice = $this->findInvoice($id);
@@ -251,7 +307,7 @@ trait ManagesInvoices
      * @param  string  $filename
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function downloadInvoice($id, array $data = [], $filename = null)
+    public function downloadInvoice(string $id, array $data = [], ?string $filename = null): SymfonyResponse
     {
         $invoice = $this->findInvoiceOrFail($id);
 
@@ -263,9 +319,9 @@ trait ManagesInvoices
      *
      * @param  bool  $includePending
      * @param  array  $parameters
-     * @return \Illuminate\Support\Collection|\Laravel\Cashier\Invoice[]
+     * @return \Illuminate\Support\Collection<int, \Laravel\Cashier\Invoice>
      */
-    public function invoices($includePending = false, $parameters = [])
+    public function invoices(bool $includePending = false, array $parameters = []): Collection
     {
         if (! $this->hasStripeId()) {
             return new Collection();
@@ -275,7 +331,7 @@ trait ManagesInvoices
 
         $parameters = array_merge(['limit' => 24], $parameters);
 
-        $stripeInvoices = $this->stripe()->invoices->all(
+        $stripeInvoices = static::stripe()->invoices->all(
             ['customer' => $this->stripe_id] + $parameters
         );
 
@@ -284,8 +340,10 @@ trait ManagesInvoices
         // work with than the plain Stripe objects are. Then, we'll return the array.
         if (! is_null($stripeInvoices)) {
             foreach ($stripeInvoices->data as $invoice) {
-                if ($invoice->paid || $includePending) {
-                    $invoices[] = new Invoice($this, $invoice);
+                $invoiceInstance = new Invoice($this, $invoice);
+
+                if ($invoiceInstance->isPaid() || $includePending) {
+                    $invoices[] = $invoiceInstance;
                 }
             }
         }
@@ -297,9 +355,9 @@ trait ManagesInvoices
      * Get an array of the customer's invoices, including pending invoices.
      *
      * @param  array  $parameters
-     * @return \Illuminate\Support\Collection|\Laravel\Cashier\Invoice[]
+     * @return \Illuminate\Support\Collection<int, \Laravel\Cashier\Invoice>
      */
-    public function invoicesIncludingPending(array $parameters = [])
+    public function invoicesIncludingPending(array $parameters = []): Collection
     {
         return $this->invoices(true, $parameters);
     }
@@ -313,8 +371,12 @@ trait ManagesInvoices
      * @param  \Illuminate\Pagination\Cursor|string|null  $cursor
      * @return \Illuminate\Contracts\Pagination\CursorPaginator
      */
-    public function cursorPaginateInvoices($perPage = 24, array $parameters = [], $cursorName = 'cursor', $cursor = null)
-    {
+    public function cursorPaginateInvoices(
+        ?int $perPage = 24,
+        array $parameters = [],
+        string $cursorName = 'cursor',
+        Cursor|string|null $cursor = null
+    ): CursorPaginator {
         if (! $cursor instanceof Cursor) {
             $cursor = is_string($cursor)
                 ? Cursor::fromEncoded($cursor)
@@ -340,5 +402,42 @@ trait ManagesInvoices
             'cursorName' => $cursorName,
             'parameters' => ['id'],
         ]));
+    }
+
+    /**
+     * Get invoice payments for a specific payment intent.
+     *
+     * @param  string  $paymentIntentId
+     * @return \Illuminate\Support\Collection<int, \Laravel\Cashier\InvoicePayment>
+     */
+    public function invoicePaymentsForPaymentIntent(string $paymentIntentId): Collection
+    {
+        $invoicePayments = static::stripe()->invoicePayments->all([
+            'payment' => [
+                'type' => 'payment_intent',
+                'payment_intent' => $paymentIntentId,
+            ],
+        ]);
+
+        return collect($invoicePayments->data)->map(function ($payment) {
+            return new InvoicePayment($payment);
+        });
+    }
+
+    /**
+     * Get invoice payments for a specific invoice.
+     *
+     * @param  string  $invoiceId
+     * @return \Illuminate\Support\Collection<int, \Laravel\Cashier\InvoicePayment>
+     */
+    public function invoicePaymentsForInvoice(string $invoiceId): Collection
+    {
+        $invoicePayments = static::stripe()->invoicePayments->all([
+            'invoice' => $invoiceId,
+        ]);
+
+        return collect($invoicePayments->data)->map(function ($payment) {
+            return new InvoicePayment($payment);
+        });
     }
 }

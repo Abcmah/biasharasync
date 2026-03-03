@@ -41,10 +41,6 @@ class SettingsController extends ApiBaseController
 
     public function updateStorage(StorageUpdateRequest $request)
     {
-        // Not Allowed in Demo Mode
-        if (env('APP_ENV') == 'production') {
-            throw new ApiException('Not Allowed In Demo Mode');
-        }
 
         GlobalSettings::where('setting_type', 'storage')->update([
             'status' => 0

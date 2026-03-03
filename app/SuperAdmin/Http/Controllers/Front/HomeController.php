@@ -4,27 +4,28 @@ namespace App\SuperAdmin\Http\Controllers\Front;
 
 use App\Classes\Common;
 use App\Classes\Output;
-use App\SuperAdmin\Http\Requests\Front\Contact\StoreRequest;
-use App\SuperAdmin\Http\Requests\Front\Register\StoreRegisterRequest;
 use App\Models\Company;
 use App\Models\Role;
 use App\Models\StaffMember;
 use App\Models\SubscriptionPlan;
+use App\Models\User;
 use App\Models\UserDetails;
 use App\Models\Warehouse;
 use App\Scopes\CompanyScope;
 use App\SuperAdmin\Classes\SuperAdminCommon;
 use App\SuperAdmin\Http\Requests\Front\CallToActionRequest;
+use App\SuperAdmin\Http\Requests\Front\Contact\StoreRequest;
+use App\SuperAdmin\Http\Requests\Front\Register\StoreRegisterRequest;
+use App\SuperAdmin\Models\EmailQuery;
 use App\SuperAdmin\Models\GlobalCompany;
 use App\SuperAdmin\Models\GlobalSettings;
 use App\SuperAdmin\Notifications\Front\ContactUsEmail;
 use App\SuperAdmin\Notifications\Front\NewUserRegistered;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
-use App\SuperAdmin\Models\EmailQuery;
-use Carbon\Carbon;
 
 class HomeController extends FrontBaseController
 {
@@ -233,21 +234,22 @@ class HomeController extends FrontBaseController
         return view('front.register', $this->data);
     }
 
-    public function saveRegister(StoreRegisterRequest $request)
+        public function saveRegister(Request $request)
     {
-        $company = new Company();
 
         DB::beginTransaction();
         try {
-            $company->name = $request->company_name;
-            $company->short_name = Str::lower($request->company_name);
-            $company->email = $request->company_email;
-            $company->phone = $request->company_phone;
-            $company->total_users = 1;
-            $company->is_global = 0;
-            $company->save();
 
-            $admin = new StaffMember();
+            $company = Company::create([
+                'name' => $request->company_name,
+                'short_name' => Str::lower($request->company_name),
+                'email' => $request->company_email,
+                'phone' => $request->company_phone,
+                'total_users' => 1,
+                'is_global' => 0
+            ]);
+
+            $admin = new User();
             $admin->company_id = $company->id;
             $admin->name = 'Admin';
             $admin->email = $request->company_email;
@@ -258,19 +260,18 @@ class HomeController extends FrontBaseController
             $admin->status = 'enabled';
             $admin->save();
 
-            $adminRole = Role::withoutGlobalScope(CompanyScope::class)->where('name', 'admin')->where('company_id', $company->id)->first();
+            $adminRole = Role::firstOrCreate(
+                ['name' => 'admin'],
+                ['display_name' => 'Admin']
+            );
 
-            // dd($adminRole);
-            if($adminRole){
-                $admin->role_id = $adminRole->id;
-                $admin->save();
-                $admin->roles()->attach($adminRole->id);
+            $admin->role_id = $adminRole->id;
+            $admin->save();
 
-                $company->admin_id = $admin->id;
-                $company->save();
+            $admin->addRole($adminRole, $company->id);
 
-            }
-
+            $company->admin_id = $admin->id;
+            $company->save();
 
             $mailSetting = GlobalSettings::where('setting_type', 'email')->where('status', 1)->where('verified', 1)->first();
             if ($mailSetting) {
@@ -310,7 +311,83 @@ class HomeController extends FrontBaseController
         } catch (\Exception $e) {
             DB::rollback();
             return Output::error($e->getMessage());
-            return Output::error($this->frontSetting->error_contact_support);
+        }
+
+        return Output::success($this->frontSetting->register_success_text);
+    }
+    public function saveRegisterdd(StoreRegisterRequest $request)
+    {
+        DB::beginTransaction();
+        try {
+            $company = Company::create([
+                'name' => $request->company_name,
+                'short_name' => Str::lower($request->company_name),
+                'email' => $request->company_email,
+                'phone' => $request->company_phone,
+                'total_users' => 1,
+                'is_global' => 0,
+            ]);
+
+            $admin = new StaffMember();
+            $admin->company_id = $company->id;
+            $admin->name = 'Admin';
+            $admin->email = $request->company_email;
+            $admin->phone = $request->company_phone;
+            $admin->password = $request->password;
+            $admin->user_type = 'staff_members';
+            $admin->email_verification_code = Str::random(50);
+            $admin->status = 'enabled';
+            $admin->save();
+
+            $adminRole = Role::firstOrCreate(
+                ['name' => 'admin'],
+                ['display_name' => 'Admin']
+            );
+
+            $admin->role_id = $adminRole->id;
+            $admin->save();
+
+            $admin->addRole($adminRole, $company->id);
+
+            $company->admin_id = $admin->id;
+            $company->save();
+
+            $mailSetting = GlobalSettings::where('setting_type', 'email')->where('status', 1)->where('verified', 1)->first();
+            if ($mailSetting) {
+                $globalCompany = GlobalCompany::first();
+                $notficationData = [
+                    'company' => $company,
+                    'user' => $admin,
+                ];
+                Notification::route('mail', $globalCompany->email)->notify(new NewUserRegistered($notficationData));
+
+                // Sending to user
+                $templateSubject = 'Registration Successful';
+                $userMailContent = '<p>Hello,</p>
+                <p>Thanks for registration... please check login details</p>
+                <table><tbody style="color:#0000009c;">
+                <tr>
+                    <td><p>App Url : </p></td>
+                    <td><p>' . url('/') . '/admin/login</p></td>
+                </tr>
+                <tr>
+                    <td><p>Name : </p></td>
+                    <td><p>' . $admin->email . '</p></td>
+                </tr>
+                <tr>
+                    <td><p>Password : </p></td>
+                    <td><p>' . $request->password . '</p></td>
+                </tr>
+        </tbody>
+</table><br>';
+
+                Notification::route('mail', $admin->email)->notify(new ContactUsEmail($templateSubject, $userMailContent));
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
+            return Output::error($e->getMessage());
         }
 
         return Output::success($this->frontSetting->register_success_text);

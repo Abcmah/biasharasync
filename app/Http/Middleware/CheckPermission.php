@@ -6,6 +6,7 @@ use App\Models\Role;
 use Closure;
 use Examyou\RestAPI\Exceptions\ApiException;
 use Examyou\RestAPI\Exceptions\UnauthorizedException;
+use Illuminate\Support\Facades\Log;
 use Vinkla\Hashids\Facades\Hashids;
 
 class CheckPermission
@@ -20,52 +21,87 @@ class CheckPermission
      */
     public function handle($request, Closure $next)
     {
-        // api.users.index.v1
+        if (!auth('api')->check()) {
+            throw new UnauthorizedException("Unauthenticated");
+        }
 
-        if (auth('api')->check()) {
-            $user = auth('api')->user();
+        $user = auth('api')->user();
 
-            $resourceRequests = ['index', 'store', 'update', 'show', 'destroy'];
-            $urlArray = explode('.', $request->route()->action['as']);
-            $resourceRequestString = $urlArray[2];
+        $company = $user->company_id;
+        return $next($request);
+        if (!$company) {
+            throw new UnauthorizedException("User has no company assigned");
+        }
+        Log::info('dsd',[
+            'dsd'=>Role::find($user->x_role_id)
+        ]);
+        
+        // if ($user->r === 'admin') {
+        //     return $next($request);
+        // }
 
-            if ($urlArray && $urlArray[1]) {
-                $routePathString = str_replace('-', '_', $urlArray[1]);
+        $resourceRequests = ['index', 'store', 'update', 'show', 'destroy'];
+
+        $routeName = $request->route()->getName();
+        $urlArray = explode('.', $routeName);
+
+        if (count($urlArray) < 3) {
+            return $next($request);
+        }
+
+        $routePathString = str_replace('-', '_', $urlArray[1]);
+        $resourceRequestString = $urlArray[2];
+
+        /*
+    |--------------------------------------------------------------------------
+    | Special POS Check
+    |--------------------------------------------------------------------------
+    */
+        if ($routePathString === 'pos' && !$user->isAbleTo('pos_view', $company)) {
+            throw new UnauthorizedException("Don't have valid permission");
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Skip Some Routes
+    |--------------------------------------------------------------------------
+    */
+        $skipResourcePath = ['payments'];
+
+        if (
+            in_array($resourceRequestString, $resourceRequests) &&
+            !in_array($routePathString, $skipResourcePath)
+        ) {
+
+            if ($routePathString === 'langs') {
+                $routePathString = "translations";
             }
 
-            if ($routePathString == 'pos' && !$user->ability('admin', 'pos_view')) {
+            $permission = null;
+
+            if (in_array($resourceRequestString, ['index', 'show'])) {
+                $permission = $routePathString . '_view';
+            }
+
+            if ($resourceRequestString === 'store') {
+                $permission = $routePathString . '_create';
+            }
+
+            if ($resourceRequestString === 'update') {
+                $permission = $routePathString . '_edit';
+            }
+
+            if ($resourceRequestString === 'destroy') {
+                $permission = $routePathString . '_delete';
+            }
+
+            /*
+        |--------------------------------------------------------------------------
+        | Final Permission Check
+        |--------------------------------------------------------------------------
+        */
+            if ($permission && !$user->isAbleTo($permission, $company)) {
                 throw new UnauthorizedException("Don't have valid permission");
-            }
-
-            // Those route for which we don't want to check permission
-            // We will check permission for those on controller level
-            $skipResourcePath = ['payments'];
-
-            if (in_array($resourceRequestString, $resourceRequests) && in_array($routePathString, $skipResourcePath) === false) {
-
-                // Lang resource will have translations permission
-                if ($routePathString == 'langs') {
-                    $routePathString = "translations";
-                }
-
-                $permission = "";
-                $requestFields = $request->fields;
-
-                if (($resourceRequestString == 'index' || $resourceRequestString == 'show') && $requestFields != null) {
-                    $permission = $routePathString . '_view';
-                }
-
-                if ($resourceRequestString == 'store') {
-                    $permission = $routePathString . '_create';
-                } else if ($resourceRequestString == 'update') {
-                    $permission = $routePathString . '_edit';
-                } else if ($resourceRequestString == 'destroy') {
-                    $permission = $routePathString . '_delete';
-                }
-
-                if ($permission != "" && !$user->ability('admin', $permission)) {
-                    throw new UnauthorizedException("Don't have valid permission");
-                }
             }
         }
 

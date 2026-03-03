@@ -18,14 +18,9 @@ class NotBefore extends Claim
 {
     use DatetimeTrait;
 
-    /**
-     * {@inheritdoc}
-     */
     protected $name = 'nbf';
 
     /**
-     * {@inheritdoc}
-     *
      * @throws TokenInvalidException
      */
     public function validatePayload()
@@ -33,5 +28,7 @@ class NotBefore extends Claim
         if ($this->isFuture($this->getValue())) {
             throw new TokenInvalidException('Not Before (nbf) timestamp cannot be in the future');
         }
+
+        return true;
     }
 }

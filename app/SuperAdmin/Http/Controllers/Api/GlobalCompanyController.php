@@ -18,15 +18,6 @@ class GlobalCompanyController extends ApiBaseController
 
     public function updating(GlobalCompany $company)
     {
-        if (env('APP_ENV') == 'production' && ($company->isDirty('name') ||
-            $company->isDirty('short_name') || $company->isDirty('light_logo') ||
-            $company->isDirty('dark_logo') || $company->isDirty('small_dark_logo') ||
-            $company->isDirty('small_light_logo') || $company->isDirty('app_debug') ||
-            $company->isDirty('update_app_notification') || $company->isDirty('app_debug')
-        )) {
-            throw new ApiException('Not Allowed In Demo Mode');
-        }
-
         return $company;
     }
 

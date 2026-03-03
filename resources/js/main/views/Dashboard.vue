@@ -5,104 +5,64 @@
         </template>
     </AdminPageHeader>
 
-    <div class="dashboard-page-content-container">
-        <UpdateAppAlert />
+    <div class="dashboard-page-content-container dashboard-modern">
 
-        <a-row :gutter="[8, 8]" class="mt-30 mb-10">
-            <a-col :xs="24" :sm="24" :md="12" :lg="6" :xl="6">
-                <DateRangePicker
-                    ref="serachDateRangePicker"
-                    @dateTimeChanged="
-                        (changedDateTime) => (filters.dates = changedDateTime)
-                    "
-                />
-            </a-col>
-        </a-row>
-
-        <div class="mt-30 mb-20">
-            <a-row :gutter="[15, 15]">
-                <a-col :xs="24" :sm="24" :md="12" :lg="6" :xl="6">
-                    <StateWidget>
-                        <template #image>
-                            <LineChartOutlined style="color: #fff; font-size: 24px" />
-                        </template>
-                        <template #description>
-                            <h2 v-if="responseData.stateData">
-                                {{
-                                    formatAmountCurrency(
-                                        responseData.stateData.totalSales
-                                    )
-                                }}
-                            </h2>
-                            <p>{{ $t("dashboard.total_sales") }}</p>
-                        </template>
-                    </StateWidget>
-                </a-col>
-
-                <a-col :xs="24" :sm="24" :md="12" :lg="6" :xl="6">
-                    <StateWidget>
-                        <template #image>
-                            <ShoppingOutlined style="color: #fff; font-size: 24px" />
-                        </template>
-                        <template #description>
-                            <h2 v-if="responseData.stateData">
-                                {{
-                                    formatAmountCurrency(
-                                        responseData.stateData.totalExpenses
-                                    )
-                                }}
-                            </h2>
-                            <p>{{ $t("dashboard.total_expenses") }}</p>
-                        </template>
-                    </StateWidget>
-                </a-col>
-
-                <a-col :xs="24" :sm="24" :md="12" :lg="6" :xl="6">
-                    <StateWidget>
-                        <template #image>
-                            <TagOutlined style="color: #fff; font-size: 24px" />
-                        </template>
-                        <template #description>
-                            <h2 v-if="responseData.stateData">
-                                {{
-                                    formatAmountCurrency(
-                                        responseData.stateData.paymentSent
-                                    )
-                                }}
-                            </h2>
-                            <p>{{ $t("dashboard.payment_sent") }}</p>
-                        </template>
-                    </StateWidget>
-                </a-col>
-
-                <a-col :xs="24" :sm="24" :md="12" :lg="6" :xl="6">
-                    <StateWidget>
-                        <template #image>
-                            <BankOutlined style="color: #fff; font-size: 24px" />
-                        </template>
-                        <template #description>
-                            <h2 v-if="responseData.stateData">
-                                {{
-                                    formatAmountCurrency(
-                                        responseData.stateData.paymentReceived
-                                    )
-                                }}
-                            </h2>
-                            <p>{{ $t("dashboard.payment_received") }}</p>
-                        </template>
-                    </StateWidget>
+        <!-- Date Filter Section -->
+        <div class="filter-section fade-in">
+            <a-row :gutter="[16, 16]">
+                <a-col :xs="24" :sm="24" :md="12" :lg="8" :xl="6">
+                    <DateRangePicker
+                        ref="serachDateRangePicker"
+                        @dateTimeChanged="
+                            (changedDateTime) => (filters.dates = changedDateTime)
+                        "
+                    />
                 </a-col>
             </a-row>
         </div>
 
-        <a-row :gutter="[18, 18]" class="mt-30 mb-20">
-            <a-col :xs="24" :sm="24" :md="12" :lg="6" :xl="6">
-                <a-card :title="$t('dashboard.top_selling_product')">
+        <!-- Stats Cards Section -->
+        <div class="stats-section fade-in-up">
+            <a-row :gutter="[20, 20]">
+                <a-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6" v-for="(stat, index) in statsCards" :key="index">
+                    <div class="stat-card-wrapper" :style="{ animationDelay: `${index * 0.1}s` }">
+                        <StateWidget>
+                            <template #image>
+                                <component :is="stat.icon" class="stat-icon" />
+                            </template>
+                            <template #description>
+                                <h2 v-if="responseData.stateData" class="stat-value">
+                                    {{
+                                        formatAmountCurrency(
+                                            responseData.stateData[stat.dataKey]
+                                        )
+                                    }}
+                                </h2>
+                                <p class="stat-label">{{ $t(stat.label) }}</p>
+                            </template>
+                        </StateWidget>
+                    </div>
+                </a-col>
+            </a-row>
+        </div>
+
+        <!-- Charts Section -->
+        <a-row :gutter="[20, 20]" class="charts-section fade-in-up">
+            <a-col :xs="24" :sm="24" :md="24" :lg="6" :xl="6">
+                <a-card
+                    :title="$t('dashboard.top_selling_product')"
+                    class="dashboard-card hover-lift"
+                    :hoverable="true"
+                >
                     <TopProducts :data="responseData" />
                 </a-card>
             </a-col>
-            <a-col :xs="24" :sm="24" :md="12" :lg="18" :xl="18">
-                <a-card :title="$t('dashboard.sales_purchases')">
+            <a-col :xs="24" :sm="24" :md="24" :lg="18" :xl="18">
+                <a-card
+                    :title="$t('dashboard.sales_purchases')"
+                    class="dashboard-card hover-lift"
+                    :hoverable="true"
+                >
                     <PurchaseSales :data="responseData" />
                     <template
                         v-if="
@@ -112,7 +72,7 @@
                         #extra
                     >
                         <a-button
-                            class="mt-10"
+                            class="view-all-btn"
                             type="link"
                             @click="
                                 $router.push({
@@ -128,8 +88,10 @@
             </a-col>
         </a-row>
 
+        <!-- Stock History Section -->
         <a-row
-            class="mt-30 mb-20"
+            :gutter="[20, 20]"
+            class="stock-history-section fade-in-up"
             v-if="
                 (permsArray.includes('purchases_view') ||
                     permsArray.includes('sales_view') ||
@@ -143,9 +105,11 @@
                 <a-card
                     :title="$t('dashboard.recent_stock_history')"
                     :bodyStyle="{ paddingTop: '0px' }"
+                    class="dashboard-card hover-lift"
+                    :hoverable="true"
                 >
                     <template #extra>
-                        <a-tabs v-model:activeKey="activeOrderType">
+                        <a-tabs v-model:activeKey="activeOrderType" class="modern-tabs">
                             <a-tab-pane
                                 v-if="
                                     permsArray.includes('sales_view') ||
@@ -180,25 +144,20 @@
                             />
                         </a-tabs>
                     </template>
-                    <a-row>
+                    <a-row :gutter="[20, 20]">
                         <a-col
                             :xs="24"
                             :sm="24"
-                            :md="12"
+                            :md="24"
                             :lg="6"
                             :xl="6"
-                            class="col-border-right pt-30"
+                            class="stats-sidebar"
                         >
                             <a-row
                                 v-if="responseData.stockHistoryStatsData"
-                                :style="
-                                    appSetting.rtl
-                                        ? { marginLeft: '24px' }
-                                        : { marginRight: '24px' }
-                                "
                                 class="stock-history-stats"
                             >
-                                <a-col :span="24" class="sales mb-20">
+                                <a-col :span="24" class="sales stat-item">
                                     <a-statistic
                                         :title="$t('dashboard.total_sales_items')"
                                         :value="
@@ -209,7 +168,7 @@
                                         "
                                     />
                                 </a-col>
-                                <a-col :span="24" class="sales-returns mb-20">
+                                <a-col :span="24" class="sales-returns stat-item">
                                     <a-statistic
                                         :title="$t('dashboard.total_sales_returns_items')"
                                         :value="
@@ -220,7 +179,7 @@
                                         "
                                     />
                                 </a-col>
-                                <a-col :span="24" class="purchases mb-20">
+                                <a-col :span="24" class="purchases stat-item">
                                     <a-statistic
                                         :title="$t('dashboard.total_purchases_items')"
                                         :value="
@@ -232,7 +191,7 @@
                                     />
                                 </a-col>
 
-                                <a-col :span="24" class="purchase-returns mb-20">
+                                <a-col :span="24" class="purchase-returns stat-item">
                                     <a-statistic
                                         :title="
                                             $t('dashboard.total_purchase_returns_items')
@@ -247,7 +206,7 @@
                                 </a-col>
                             </a-row>
                         </a-col>
-                        <a-col :xs="24" :sm="24" :md="12" :lg="18" :xl="18">
+                        <a-col :xs="24" :sm="24" :md="24" :lg="18" :xl="18">
                             <OrderTable
                                 :orderType="activeOrderType"
                                 :filters="filters"
@@ -259,9 +218,14 @@
             </a-col>
         </a-row>
 
-        <a-row :gutter="[18, 18]" class="mt-30 mb-20">
+        <!-- Payments Chart Section -->
+        <a-row :gutter="[20, 20]" class="payments-section fade-in-up">
             <a-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
-                <a-card :title="$t('payments.payments')">
+                <a-card
+                    :title="$t('payments.payments')"
+                    class="dashboard-card hover-lift"
+                    :hoverable="true"
+                >
                     <PaymentsChart :data="responseData" />
                     <template
                         v-if="
@@ -271,7 +235,7 @@
                         #extra
                     >
                         <a-button
-                            class="mt-10"
+                            class="view-all-btn"
                             type="link"
                             @click="
                                 $router.push({ name: 'admin.reports.payments.index' })
@@ -285,11 +249,14 @@
             </a-col>
         </a-row>
 
-        <a-row :gutter="[18, 18]" class="mt-30 mb-20">
-            <a-col :xs="24" :sm="24" :md="12" :lg="16" :xl="16">
+        <!-- Bottom Section: Stock Alerts & Top Customers -->
+        <a-row :gutter="[20, 20]" class="bottom-section fade-in-up">
+            <a-col :xs="24" :sm="24" :md="24" :lg="16" :xl="16">
                 <a-card
                     :title="$t('menu.stock_alert')"
                     :bodyStyle="{ padding: '0px' }"
+                    class="dashboard-card hover-lift"
+                    :hoverable="true"
                     v-if="responseData && responseData.stockAlerts"
                 >
                     <a-table
@@ -297,6 +264,7 @@
                         :row-key="(record) => record.xid"
                         :data-source="responseData.stockAlerts"
                         :pagination="false"
+                        class="modern-table"
                     >
                         <template #bodyCell="{ column, record }">
                             <template v-if="column.dataIndex === 'current_stock'">
@@ -317,7 +285,7 @@
                         #extra
                     >
                         <a-button
-                            class="mt-10"
+                            class="view-all-btn"
                             type="link"
                             @click="$router.push({ name: 'admin.reports.stock.index' })"
                         >
@@ -327,10 +295,12 @@
                     </template>
                 </a-card>
             </a-col>
-            <a-col :xs="24" :sm="24" :md="12" :lg="8" :xl="8">
+            <a-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8">
                 <a-card
                     :title="$t('dashboard.top_customers')"
                     :bodyStyle="{ padding: '0px' }"
+                    class="dashboard-card hover-lift"
+                    :hoverable="true"
                     v-if="responseData && responseData.topCustomers"
                 >
                     <a-table
@@ -338,6 +308,7 @@
                         :row-key="(record) => record.customer_id"
                         :data-source="responseData.topCustomers"
                         :pagination="false"
+                        class="modern-table"
                     >
                         <template #bodyCell="{ column, record }">
                             <template v-if="column.dataIndex == 'customer_id'">
@@ -345,8 +316,7 @@
                             </template>
                             <template v-if="column.dataIndex == 'total_amount'">
                                 {{ formatAmountCurrency(record.total_amount) }} <br />
-                                {{ $t("dashboard.total_sales") }} :
-                                {{ record.total_sales }}
+                                <span class="text-muted">{{ $t("dashboard.total_sales") }}: {{ record.total_sales }}</span>
                             </template>
                         </template>
                     </a-table>
@@ -358,7 +328,7 @@
                         #extra
                     >
                         <a-button
-                            class="mt-10"
+                            class="view-all-btn"
                             type="link"
                             @click="$router.push({ name: 'admin.reports.users.index' })"
                         >
@@ -396,7 +366,6 @@ import Tiimeline from "../components/stock-history/Tiimeline.vue";
 import OrderTable from "../components/order/OrderTable.vue";
 import UserInfo from "../../common/components/user/UserInfo.vue";
 import DateRangePicker from "../../common/components/common/calendar/DateRangePicker.vue";
-import UpdateAppAlert from "./UpdateAppAlert.vue";
 import AdminPageHeader from "../../common/layouts/AdminPageHeader.vue";
 
 export default {
@@ -417,7 +386,6 @@ export default {
         ShoppingOutlined,
         TagOutlined,
         DateRangePicker,
-        UpdateAppAlert,
         AdminPageHeader,
     },
     setup() {
@@ -436,6 +404,30 @@ export default {
         });
         const responseData = ref([]);
         const route = useRoute();
+
+        // Stats cards configuration
+        const statsCards = [
+            {
+                icon: LineChartOutlined,
+                dataKey: 'totalSales',
+                label: 'dashboard.total_sales',
+            },
+            {
+                icon: ShoppingOutlined,
+                dataKey: 'totalExpenses',
+                label: 'dashboard.total_expenses',
+            },
+            {
+                icon: TagOutlined,
+                dataKey: 'paymentSent',
+                label: 'dashboard.payment_sent',
+            },
+            {
+                icon: BankOutlined,
+                dataKey: 'paymentReceived',
+                label: 'dashboard.payment_received',
+            },
+        ];
 
         const stockQuantityColumns = [
             {
@@ -500,7 +492,7 @@ export default {
             filters,
             activeOrderType,
             responseData,
-
+            statsCards,
             stockQuantityColumns,
             topCustomerColumns,
             formatQuantity,
@@ -513,40 +505,397 @@ export default {
 </script>
 
 <style lang="less">
-.ant-card-extra,
-.ant-card-head-title {
-    padding: 0px;
+// Modern Dashboard Styles - Relaxing UX/UI
+.dashboard-modern {
+    padding-bottom: 40px;
+
+    // Smooth scrolling
+    scroll-behavior: smooth;
 }
 
-.ant-card-head-title {
-    margin-top: 10px;
+// Animation keyframes
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+// Fade-in animations
+.fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+// Filter Section
+.filter-section {
+    margin-bottom: 24px;
+    margin-top: 24px;
+}
+
+// Stats Section with modern cards
+.stats-section {
+    margin-bottom: 28px;
+}
+
+.stat-card-wrapper {
+    animation: slideInRight 0.6s ease-out both;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+        transform: translateY(-4px);
+    }
+}
+
+.stat-icon {
+    color: #fff;
+    font-size: 26px;
+    transition: transform 0.3s ease;
+}
+
+.stat-card-wrapper:hover .stat-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 8px 0 4px 0;
+    color: #1a1a1a;
+    letter-spacing: -0.5px;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0;
+    font-weight: 500;
+}
+
+// Dashboard Cards with soft shadows
+.dashboard-card {
+    border-radius: 16px;
+    border: 1px solid #f0f0f5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+
+    &.hover-lift:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+        border-color: #e8e8f0;
+    }
+
+    .ant-card-head {
+        border-bottom: 1px solid #f5f5f8;
+        padding: 20px 24px;
+        background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+
+        .ant-card-head-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            padding: 0;
+            margin-top: 0;
+        }
+    }
+
+    .ant-card-body {
+        padding: 24px;
+    }
+}
+
+// View All Button styling
+.view-all-btn {
+    color: #4f46e5;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    padding: 8px 12px;
+    border-radius: 8px;
+
+    &:hover {
+        background: #eef2ff;
+        color: #4338ca;
+        transform: translateX(4px);
+    }
+}
+
+// Charts Section
+.charts-section {
+    margin-bottom: 28px;
+}
+
+// Stock History Section
+.stock-history-section {
+    margin-bottom: 28px;
+}
+
+.stats-sidebar {
+    @media (max-width: 991px) {
+        margin-bottom: 20px;
+    }
 }
 
 .stock-history-stats {
-    margin-right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    @media (min-width: 992px) {
+        padding-right: 24px;
+        border-right: 1px solid #f0f0f5;
+    }
+
+    .stat-item {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 20px;
+        border-radius: 14px;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+
+        &:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            border-color: #e2e8f0;
+        }
+
+        .ant-statistic-title {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .ant-statistic-content {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+    }
 
     .sales {
-        background: #e6f2ed;
-        padding: 15px;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border-color: #a7f3d0;
+
+        .ant-statistic-content {
+            color: #065f46;
+        }
     }
 
     .sales-returns {
-        background: #ffefed;
-        padding: 15px;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border-color: #fecaca;
+
+        .ant-statistic-content {
+            color: #991b1b;
+        }
     }
 
     .purchases {
-        background: #eff3fe;
-        padding: 15px;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border-color: #bfdbfe;
+
+        .ant-statistic-content {
+            color: #1e40af;
+        }
     }
 
     .purchase-returns {
-        background: #f5f0df;
-        padding: 15px;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+        border-color: #fde68a;
+
+        .ant-statistic-content {
+            color: #92400e;
+        }
+    }
+}
+
+// Modern Tabs
+.modern-tabs {
+    .ant-tabs-tab {
+        font-weight: 500;
+        color: #6b7280;
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: #4f46e5;
+        }
+
+        &.ant-tabs-tab-active {
+            color: #4f46e5;
+        }
+    }
+
+    .ant-tabs-ink-bar {
+        background: #4f46e5;
+        height: 3px;
+        border-radius: 3px 3px 0 0;
+    }
+}
+
+// Payments Section
+.payments-section {
+    margin-bottom: 28px;
+}
+
+// Bottom Section
+.bottom-section {
+    margin-bottom: 28px;
+}
+
+// Modern Table styling
+.modern-table {
+    .ant-table {
+        border-radius: 0 0 16px 16px;
+
+        thead > tr > th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            padding: 16px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tbody > tr {
+            transition: all 0.2s ease;
+
+            &:hover {
+                background: #f9fafb;
+
+                td {
+                    background: transparent !important;
+                }
+            }
+
+            td {
+                padding: 16px;
+                border-bottom: 1px solid #f3f4f6;
+            }
+        }
+    }
+}
+
+// Text utilities
+.text-muted {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+// Card header adjustments
+.ant-card-extra,
+.ant-card-head-title {
+    padding: 0;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+    .dashboard-card {
+        margin-bottom: 16px;
+
+        .ant-card-head {
+            padding: 16px;
+        }
+
+        .ant-card-body {
+            padding: 16px;
+        }
+    }
+
+    .stat-value {
+        font-size: 20px;
+    }
+
+    .stock-history-stats {
+        padding-right: 0;
+        border-right: none;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .filter-section {
+        margin-top: 16px;
+        margin-bottom: 16px;
+    }
+
+    .stats-section {
+        margin-bottom: 20px;
+    }
+
+    .stat-card-wrapper {
+        margin-bottom: 12px;
+    }
+
+    .dashboard-card {
+        border-radius: 12px;
+    }
+}
+
+// Loading state with skeleton (optional enhancement)
+.skeleton-loading {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+// Smooth transitions for all interactive elements
+* {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// Custom scrollbar for modern look
+.dashboard-page-content-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dashboard-page-content-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.dashboard-page-content-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+
+    &:hover {
+        background: #94a3b8;
     }
 }
 </style>

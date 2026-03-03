@@ -22,7 +22,7 @@ class CompanyObserver
         // $company = Common::addCurrencies($company);
 
         if (!$company->is_global) {
-            $company = $this->addAdminRole($company);
+            // $company = $this->addAdminRole($company);
             Common::insertInitSettings($company);
             $company = Common::createCompanyWalkInCustomer($company);
 
@@ -31,18 +31,18 @@ class CompanyObserver
         }
     }
 
-    public function addAdminRole($company)
-    {
-        // Seeding Data
-        $adminRole = new Role();
-        $adminRole->company_id = $company->id;
-        $adminRole->name = 'admin';
-        $adminRole->display_name = 'Admin';
-        $adminRole->description = 'Admin is allowed to manage everything of the app.';
-        $adminRole->save();
+    // public function addAdminRole($company)
+    // {
+    //     // Seeding Data
+    //     $adminRole = new Role();
+    //     $adminRole->company_id = $company->id;
+    //     $adminRole->name = 'admin';
+    //     $adminRole->display_name = 'Admin';
+    //     $adminRole->description = 'Admin is allowed to manage everything of the app.';
+    //     $adminRole->save();
 
-        return $company;
-    }
+    //     return $company;
+    // }
 
     public function addPaymentMode($company)
     {

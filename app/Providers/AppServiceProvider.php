@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use App\Models\Company;
 use Laravel\Cashier\Cashier;
-use Laravel\Sanctum\Sanctum;
+// use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
             Cashier::useCustomerModel(Company::class);
             Cashier::useSubscriptionModel(\App\SuperAdmin\Models\Subscription::class);
         }
-        Sanctum::ignoreMigrations();
+        // Sanctum::ignoreMigrations();
 
         // For catching 404 Route not found error in vue app
         // Later in Base Controller we will disable it

@@ -80,9 +80,10 @@ class WebhookController extends Controller
                 $firstItem = $data['items']['data'][0];
                 $isSinglePrice = count($data['items']['data']) === 1;
 
-                $subscription = $user->subscriptions()->create([
-                    'name' => $data['metadata']['name'] ?? $this->newSubscriptionName($payload),
+                $subscription = $user->subscriptions()->updateOrCreate([
                     'stripe_id' => $data['id'],
+                ], [
+                    'type' => $data['metadata']['type'] ?? $data['metadata']['name'] ?? $this->newSubscriptionType($payload),
                     'stripe_status' => $data['status'],
                     'stripe_price' => $isSinglePrice ? $firstItem['price']['id'] : null,
                     'quantity' => $isSinglePrice && isset($firstItem['quantity']) ? $firstItem['quantity'] : null,
@@ -91,13 +92,20 @@ class WebhookController extends Controller
                 ]);
 
                 foreach ($data['items']['data'] as $item) {
-                    $subscription->items()->create([
+                    $subscription->items()->updateOrCreate([
                         'stripe_id' => $item['id'],
+                    ], [
                         'stripe_product' => $item['price']['product'],
                         'stripe_price' => $item['price']['id'],
                         'quantity' => $item['quantity'] ?? null,
                     ]);
                 }
+            }
+
+            // Terminate the billable's generic trial if it exists...
+            if (! is_null($user->trial_ends_at)) {
+                $user->trial_ends_at = null;
+                $user->save();
             }
         }
 
@@ -105,12 +113,12 @@ class WebhookController extends Controller
     }
 
     /**
-     * Determines the name that should be used when new subscriptions are created from the Stripe dashboard.
+     * Determines the type that should be used when new subscriptions are created from the Stripe dashboard.
      *
      * @param  array  $payload
      * @return string
      */
-    protected function newSubscriptionName(array $payload)
+    protected function newSubscriptionType(array $payload)
     {
         return 'default';
     }
@@ -119,7 +127,7 @@ class WebhookController extends Controller
      * Handle customer subscription updated.
      *
      * @param  array  $payload
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\Response|null
      */
     protected function handleCustomerSubscriptionUpdated(array $payload)
     {
@@ -135,10 +143,10 @@ class WebhookController extends Controller
                 $subscription->items()->delete();
                 $subscription->delete();
 
-                return;
+                return null;
             }
 
-            $subscription->name = $subscription->name ?? $data['metadata']['name'] ?? $this->newSubscriptionName($payload);
+            $subscription->type = $subscription->type ?? $data['metadata']['type'] ?? $data['metadata']['name'] ?? $this->newSubscriptionType($payload);
 
             $firstItem = $data['items']['data'][0];
             $isSinglePrice = count($data['items']['data']) === 1;
@@ -159,16 +167,14 @@ class WebhookController extends Controller
             }
 
             // Cancellation date...
-            if (isset($data['cancel_at_period_end'])) {
-                if ($data['cancel_at_period_end']) {
-                    $subscription->ends_at = $subscription->onTrial()
-                        ? $subscription->trial_ends_at
-                        : Carbon::createFromTimestamp($data['current_period_end']);
-                } elseif (isset($data['cancel_at'])) {
-                    $subscription->ends_at = Carbon::createFromTimestamp($data['cancel_at']);
-                } else {
-                    $subscription->ends_at = null;
-                }
+            if ($data['cancel_at_period_end'] ?? false) {
+                $subscription->ends_at = $subscription->onTrial()
+                    ? $subscription->trial_ends_at
+                    : $subscription->currentPeriodEnd();
+            } elseif (isset($data['cancel_at']) || isset($data['canceled_at'])) {
+                $subscription->ends_at = Carbon::createFromTimestamp($data['cancel_at'] ?? $data['canceled_at']);
+            } else {
+                $subscription->ends_at = null;
             }
 
             // Status...
@@ -180,10 +186,10 @@ class WebhookController extends Controller
 
             // Update subscription items...
             if (isset($data['items'])) {
-                $prices = [];
+                $subscriptionItemIds = [];
 
                 foreach ($data['items']['data'] as $item) {
-                    $prices[] = $item['price']['id'];
+                    $subscriptionItemIds[] = $item['id'];
 
                     $subscription->items()->updateOrCreate([
                         'stripe_id' => $item['id'],
@@ -195,7 +201,7 @@ class WebhookController extends Controller
                 }
 
                 // Delete items that aren't attached to the subscription anymore...
-                $subscription->items()->whereNotIn('stripe_price', $prices)->delete();
+                $subscription->items()->whereNotIn('stripe_id', $subscriptionItemIds)->delete();
             }
         }
 
@@ -203,7 +209,7 @@ class WebhookController extends Controller
     }
 
     /**
-     * Handle a canceled customer from a Stripe subscription.
+     * Handle the cancellation of a customer subscription.
      *
      * @param  array  $payload
      * @return \Symfony\Component\HttpFoundation\Response
@@ -214,7 +220,7 @@ class WebhookController extends Controller
             $user->subscriptions->filter(function ($subscription) use ($payload) {
                 return $subscription->stripe_id === $payload['data']['object']['id'];
             })->each(function ($subscription) {
-                $subscription->markAsCanceled();
+                $subscription->skipTrial()->markAsCanceled();
             });
         }
 
@@ -287,13 +293,25 @@ class WebhookController extends Controller
             return $this->successMethod();
         }
 
+        if ($payload['data']['object']['metadata']['is_on_session_checkout'] ?? false) {
+            return $this->successMethod();
+        }
+
+        if ($payload['data']['object']['subscription_details']['metadata']['is_on_session_checkout'] ?? false) {
+            return $this->successMethod();
+        }
+
         if ($user = $this->getUserByStripeId($payload['data']['object']['customer'])) {
             if (in_array(Notifiable::class, class_uses_recursive($user))) {
-                $payment = new Payment($user->stripe()->paymentIntents->retrieve(
-                    $payload['data']['object']['payment_intent']
-                ));
+                if (isset($payload['data']['object']['payment_intent'])) {
+                    $paymentIntent = $user->stripe()->paymentIntents->retrieve(
+                        $payload['data']['object']['payment_intent']
+                    );
 
-                $user->notify(new $notification($payment));
+                    $payment = new Payment($paymentIntent);
+
+                    $user->notify(new $notification($payment));
+                }
             }
         }
 

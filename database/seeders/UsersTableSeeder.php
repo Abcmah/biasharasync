@@ -26,7 +26,7 @@ class UsersTableSeeder extends Seeder
     public function run()
     {
         Model::unguard();
-
+        return;
         DB::table('users')->delete();
         DB::table('user_details')->delete();
         DB::table('role_user')->delete();
@@ -52,7 +52,7 @@ class UsersTableSeeder extends Seeder
         $admin->role_id = $adminRole->id;
         $admin->user_type = "staff_members";
         $admin->save();
-        $admin->attachRole($adminRole->id);
+        $admin->addRole($adminRole->id);
 
         // Salesman
         $salesmanRole = Role::where('name', 'salesman')->first();
@@ -64,7 +64,7 @@ class UsersTableSeeder extends Seeder
         $salesman->role_id = $salesmanRole->id;
         $salesman->user_type = "staff_members";
         $salesman->save();
-        $salesman->attachRole($salesmanRole->id);
+        $admin->addRole($adminRole->id);
 
         $userWarehouse = new UserWarehouse();
         $userWarehouse->user_id = $salesman->id;

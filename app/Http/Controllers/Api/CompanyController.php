@@ -38,7 +38,7 @@ class CompanyController extends ApiBaseController
             $user->save();
 
             $user = auth('api')->user();
-            $user = $user->load('role', 'role.perms', 'warehouse', 'userWarehouses');
+            $user = $user->load('role', 'role.permissions', 'warehouse', 'userWarehouses');
 
             session(['user' => $user]);
         }

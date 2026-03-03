@@ -22,14 +22,8 @@ class IssuedAt extends Claim
         validateCreate as commonValidateCreate;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected $name = 'iat';
 
-    /**
-     * {@inheritdoc}
-     */
     public function validateCreate($value)
     {
         $this->commonValidateCreate($value);
@@ -41,23 +35,21 @@ class IssuedAt extends Claim
         return $value;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function validatePayload()
     {
         if ($this->isFuture($this->getValue())) {
             throw new TokenInvalidException('Issued At (iat) timestamp cannot be in the future');
         }
+
+        return true;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function validateRefresh($refreshTTL)
     {
         if ($this->isPast($this->getValue() + $refreshTTL * 60)) {
             throw new TokenExpiredException('Token has expired and can no longer be refreshed');
         }
+
+        return true;
     }
 }

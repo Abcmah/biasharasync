@@ -2,6 +2,7 @@
 
 use App\Models\Company;
 use App\Models\Lang;
+use App\Models\Warehouse;
 use App\Scopes\CompanyScope;
 use Illuminate\Support\Facades\DB;
 
@@ -39,8 +40,11 @@ if (!function_exists('company')) {
 
     function company($reset = false)
     {
-        if (session()->has('company') && $reset == false) {
-            return session('company');
+        $request = request();
+        $cacheKey = '_cached_company';
+
+        if ($request->attributes->has($cacheKey) && $reset == false) {
+            return $request->attributes->get($cacheKey);
         }
 
         // If it is non-saas
@@ -52,8 +56,8 @@ if (!function_exists('company')) {
             }, 'subscriptionPlan'])->first();
 
             if ($company) {
-                session(['company' => $company]);
-                return session('company');
+                $request->attributes->set($cacheKey, $company);
+                return $company;
             }
 
             return null;
@@ -71,8 +75,8 @@ if (!function_exists('company')) {
                     return $query->select('id', 'name', 'modules', 'max_products', 'monthly_price', 'annual_price', 'default');
                 }])->where('id', $user->company_id)->first();
 
-                session(['company' => $company]);
-                return session('company');
+                $request->attributes->set($cacheKey, $company);
+                return $company;
             }
 
             return null;
@@ -83,20 +87,22 @@ if (!function_exists('company')) {
 if (!function_exists('super_admin')) {
 
     /**
-     * Return currently logged in user
+     * Return currently logged in super admin
      */
     function super_admin()
     {
-        if (session()->has('super_admin')) {
-            return session('super_admin');
+        $request = request();
+        $cacheKey = '_cached_super_admin';
+
+        if ($request->attributes->has($cacheKey)) {
+            return $request->attributes->get($cacheKey);
         }
 
         $user = auth('api')->user();
 
         if ($user) {
-
-            session(['super_admin' => $user]);
-            return session('super_admin');
+            $request->attributes->set($cacheKey, $user);
+            return $user;
         }
 
         return null;
@@ -106,28 +112,31 @@ if (!function_exists('super_admin')) {
 if (!function_exists('user')) {
 
     /**
-     * Return currently logged in user
+     * Return currently logged in user with eager-loaded relations
      */
     function user($reset = false)
     {
-        if (session()->has('user') && $reset == false) {
-            return session('user');
+        $request = request();
+        $cacheKey = '_cached_user';
+
+        if ($request->attributes->has($cacheKey) && $reset == false) {
+            return $request->attributes->get($cacheKey);
         }
 
         $user = auth('api')->user();
 
-        // TODO - Check if
         if ($user) {
-            $user = $user->load(['role' => function ($query) use ($user) {
-                return $query->withoutGlobalScope(CompanyScope::class)
-                    ->where('company_id', $user->company_id);
-            }, 'role.perms', 'warehouse' => function ($query) use ($user) {
-                return $query->withoutGlobalScope(CompanyScope::class)
-                    ->where('company_id', $user->company_id);
-            }, 'userWarehouses']);
+            $user = $user->load([
+                'role' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+                'role.permissions',
+                'warehouse' => fn($query) => $query->withoutGlobalScope(CompanyScope::class)
+                    ->where('company_id', $user->company_id),
+                'activeWarehouse' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+                'userWarehouses',
+            ]);
 
-            session(['user' => $user]);
-            return session('user');
+            $request->attributes->set($cacheKey, $user);
+            return $user;
         }
 
         return null;
@@ -137,21 +146,54 @@ if (!function_exists('user')) {
 if (!function_exists('warehouse')) {
 
     /**
-     * Return currently logged in user
+     * Return the current user's active warehouse.
+     * Resolution order:
+     *   1. active_warehouse_id (user-selected via warehouse switch)
+     *   2. warehouse_id via eager-loaded relationship
+     *   3. warehouse_id via direct query (bypasses eager-load constraints)
+     *   4. Company's default warehouse (last resort)
      */
     function warehouse($reset = false)
     {
-        if (session()->has('warehouse') && $reset == false) {
-            return session('warehouse');
+        $request = request();
+        $cacheKey = '_cached_warehouse';
+
+        if ($request->attributes->has($cacheKey) && $reset == false) {
+            return $request->attributes->get($cacheKey);
         }
 
         $user = user($reset);
 
-        if ($user) {
-            session(['warehouse' => $user->warehouse]);
-            return session('warehouse');
+        if (!$user) {
+            return null;
         }
 
-        return null;
+        // 1. User-selected active warehouse
+        $warehouse = $user->activeWarehouse;
+
+        // 2. Default warehouse from eager-loaded relationship
+        if (!$warehouse) {
+            $warehouse = $user->warehouse;
+        }
+
+        // 3. Direct query fallback (eager-load may have filtered it out via company constraint)
+        if (!$warehouse && $user->warehouse_id) {
+            $warehouse = Warehouse::withoutGlobalScope(CompanyScope::class)
+                ->find($user->warehouse_id);
+        }
+
+        // 4. Company's default warehouse as last resort
+        if (!$warehouse) {
+            $company = company();
+            if ($company && $company->warehouse) {
+                $warehouse = $company->warehouse;
+            }
+        }
+
+        if ($warehouse) {
+            $request->attributes->set($cacheKey, $warehouse);
+        }
+
+        return $warehouse;
     }
 }

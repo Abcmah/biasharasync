@@ -52,7 +52,7 @@ class RolesTableSeeder extends Seeder
 			'expenses_view', 'expenses_create', 'expenses_edit',
 			'customers_view', 'customers_create', 'customers_edit',
 		])->pluck('id');
-		$salesmaneRole->savePermissions($salesmanePermissions);
+		$salesmaneRole->syncPermissions($salesmanePermissions);
 
 		$stockManagerRole = new Role();
 		$stockManagerRole->name = 'stock_manager';
@@ -69,6 +69,6 @@ class RolesTableSeeder extends Seeder
 			'expenses_view', 'expenses_create', 'expenses_edit',
 			'suppliers_view', 'suppliers_create', 'suppliers_edit',
 		])->pluck('id');
-		$stockManagerRole->savePermissions($stockManagerPermissions);
+		$stockManagerRole->syncPermissions($stockManagerPermissions);
 	}
 }

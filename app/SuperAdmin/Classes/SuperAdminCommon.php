@@ -822,9 +822,9 @@ class SuperAdminCommon
         // Creating SuperAdmin
         $superAdmin = SuperAdmin::create([
             'company_id' => $globalCompany->id,
-            'name' => 'Super Admin',
-            'email' => 'superadmin@example.com',
-            'password' => '12345678',
+            'name' => 'Super Admsin',
+            'email' => 'company@app.com',
+            'password' => 'test1234',
             'is_superadmin' => true,
             'user_type' => 'super_admins',
             'status' => 'enabled',

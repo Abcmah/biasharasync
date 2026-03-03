@@ -8,6 +8,7 @@ use App\Http\Requests\Api\Auth\LoginRequest;
 use App\Http\Requests\Api\Auth\ProfileRequest;
 use App\Http\Requests\Api\Auth\RefreshTokenRequest;
 use App\Http\Requests\Api\Auth\UploadFileRequest;
+use App\Http\Resources\UserResource;
 use App\Models\Company;
 use App\Models\Currency;
 use App\Models\Customer;
@@ -18,8 +19,8 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\PaymentMode;
 use App\Models\Product;
+use App\Models\Role;
 use App\Models\Settings;
-use App\Models\StaffMember;
 use App\Models\Translation;
 use App\Models\User;
 use App\Models\UserWarehouse;
@@ -143,73 +144,77 @@ class AuthController extends ApiBaseController
 
     public function login(LoginRequest $request)
     {
-        dd($request);
-        // Removing all sessions before login
-        session()->flush();
-
-        $phone = "";
-        $email = "";
-
         $credentials = [
-            'password' =>  $request->password
+            'password' => $request->password,
+            'user_type' => 'staff_members',
+            'is_superadmin' => 0,
         ];
 
         if (is_numeric($request->get('email'))) {
             $credentials['phone'] = $request->email;
-            $phone = $request->email;
         } else {
             $credentials['email'] = $request->email;
-            $email = $request->email;
-        }
-
-        // For checking user
-        $user = User::select('*');
-        if ($email != '') {
-            $user = $user->where('email', $email);
-        } else if ($phone != '') {
-            $user = $user->where('phone', $phone);
-        }
-        $user = $user->first();
-
-        // Adding user type according to email/phone
-        if ($user) {
-            $credentials['user_type'] = 'staff_members';
-            $credentials['is_superadmin'] = 0;
-            $userCompany = Company::where('id', $user->company_id)->first();
         }
 
         if (!$token = auth('api')->attempt($credentials)) {
             throw new ApiException('These credentials do not match our records.');
-        } else if ($userCompany->status === 'pending') {
+        }
+
+        $user = auth('api')->user();
+        $userCompany = Company::find($user->company_id);
+
+        if (!$userCompany || $userCompany->status === 'pending') {
             throw new ApiException('Your company not verified.');
-        } else if ($userCompany->status === 'inactive') {
+        } elseif ($userCompany->status === 'inactive') {
             throw new ApiException('Company account deactivated.');
-        } else if (auth('api')->user()->status === 'waiting') {
+        } elseif ($user->status === 'waiting') {
             throw new ApiException('User not verified.');
-        } else if (auth('api')->user()->status === 'disabled') {
+        } elseif ($user->status === 'disabled') {
             throw new ApiException('Account deactivated.');
         }
 
-        $company = company();
-        $response = $this->respondWithToken($token);
+        $response = $this->respondWithToken($token, $user);
         $addMenuSetting = Settings::where('setting_type', 'shortcut_menus')->first();
-        $response['app'] = $company;
+        $response['app'] = $userCompany;
         $response['shortcut_menus'] = $addMenuSetting;
         $response['email_setting_verified'] = $this->emailSettingVerified();
         $response['visible_subscription_modules'] = Common::allVisibleSubscriptionModules();
 
-        return ApiResponse::make('Loggged in successfull', $response);
+        return ApiResponse::make('Logged in successfully', $response);
     }
 
-    protected function respondWithToken($token)
+    protected function respondWithToken($token, $user)
     {
-        $user = user();
+        $companyId = $user->company_id;
+
+        $user->load([
+            'role' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+            'role.permissions',
+            'userWarehouses',
+            'defaultWarehouse' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+            'activeWarehouse' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+        ]);
+
+        // Fallback: if role_id is null, resolve from role_user pivot
+        if (!$user->role && $user->id) {
+            $roleId = DB::table('role_user')
+                ->where('user_id', $user->id)
+                ->value('role_id');
+
+            if ($roleId) {
+                $user->role_id = $roleId;
+                $role = Role::withoutGlobalScope(CompanyScope::class)
+                    ->with('permissions')
+                    ->find($roleId);
+                $user->setRelation('role', $role);
+            }
+        }
 
         return [
             'token' => $token,
             'token_type' => 'bearer',
             'expires_in' => Carbon::now()->addDays(180),
-            'user' => $user
+            'user' => new UserResource($user),
         ];
     }
 
@@ -221,17 +226,20 @@ class AuthController extends ApiBaseController
             auth('api')->logout();
         }
 
-        session()->flush();
-
         return ApiResponse::make(__('Session closed successfully'));
     }
 
     public function user()
     {
         $user = auth('api')->user();
-        $user = $user->load('role', 'role.perms', 'warehouse', 'userWarehouses');
 
-        session(['user' => $user]);
+        $user->load([
+            'role' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+            'role.permissions',
+            'warehouse' => fn($query) => $query->withoutGlobalScope(CompanyScope::class)
+                ->where('company_id', $user->company_id),
+            'userWarehouses',
+        ]);
 
         return ApiResponse::make('Data successfull', [
             'user' => $user
@@ -241,8 +249,9 @@ class AuthController extends ApiBaseController
     public function refreshToken(RefreshTokenRequest $request)
     {
         $newToken = auth('api')->refresh();
+        $user = auth('api')->user();
 
-        $response = $this->respondWithToken($newToken);
+        $response = $this->respondWithToken($newToken, $user);
 
         return ApiResponse::make('Token fetched successfully', $response);
     }
@@ -259,13 +268,13 @@ class AuthController extends ApiBaseController
         $user = auth('api')->user();
 
         // In Demo Mode
-        if (env('APP_ENV') == 'production') {
-            $request = request();
+        // if (env('APP_ENV') == 'production') {
+        //     $request = request();
 
-            if ($request->email == 'admin@example.com' && $request->has('password') && $request->password != '') {
-                throw new ApiException('Not Allowed In Demo Mode');
-            }
-        }
+        //     if ($request->email == 'admin@example.com' && $request->has('password') && $request->password != '') {
+        //         throw new ApiException('Not Allowed In Demo Mode');
+        //     }
+        // }
 
         $user->name = $request->name;
         if ($request->has('profile_image')) {
@@ -279,7 +288,11 @@ class AuthController extends ApiBaseController
         $user->save();
 
         return ApiResponse::make('Profile updated successfull', [
-            'user' => $user->load('role', 'role.perms', 'userWarehouses')
+            'user' => $user->load([
+                'role' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+                'role.permissions',
+                'userWarehouses',
+            ])
         ]);
     }
 
@@ -518,8 +531,8 @@ class AuthController extends ApiBaseController
     public function getTopProducts()
     {
         $request = request();
-        $waehouse = warehouse();
-        $warehouseId = $waehouse->id;
+        $warehouse = warehouse();
+        $warehouseId = $warehouse ? $warehouse->id : null;
 
         $colors = ["#20C997", "#5F63F2", "#ffa040", "#FFCD56", "#ff6385"];
 
@@ -566,10 +579,9 @@ class AuthController extends ApiBaseController
 
     public function getWarehouseId()
     {
-        $waehouse = warehouse();
-        $warehouseId = $waehouse->id;
+        $warehouse = warehouse();
 
-        return $warehouseId;
+        return $warehouse ? $warehouse->id : null;
     }
 
     public function getSalesTopCustomers()
@@ -712,29 +724,32 @@ class AuthController extends ApiBaseController
     public function changeAdminWarehouse(Request $request)
     {
         $user = user();
+        $warehouseId = $user->warehouse_id;
 
         if ($user && $user->user_type == 'staff_members' && $request->has('warehouse_id') && $request->warehouse_id) {
-            $warehouseId = Common::getIdFromHash($request->warehouse_id);
-            $isWarehouseExists = $user->hasRole('admin') ? true : false;
+            $requestedWarehouseId = Common::getIdFromHash($request->warehouse_id);
+            $isAuthorized = $user->hasRole('admin');
 
-            if (!$user->hasRole('admin')) {
-                $isUserWarehouse = UserWarehouse::where('user_id', $user->id)
-                    ->where('warehouse_id', $warehouseId)
-                    ->count();
-
-                $isWarehouseExists = $isUserWarehouse > 0 ? true : false;
+            if (!$isAuthorized) {
+                $isAuthorized = UserWarehouse::where('user_id', $user->id)
+                    ->where('warehouse_id', $requestedWarehouseId)
+                    ->exists();
             }
 
-            $warehouse = $isWarehouseExists ? Warehouse::find($warehouseId) : $user->warehouse;
-        } else {
-            $warehouse = $user->warehouse;
+            if ($isAuthorized) {
+                $warehouseId = $requestedWarehouseId;
+            }
         }
 
-        session(['warehouse' => $warehouse]);
+        // Persist active warehouse in DB for stateless resolution
+        User::where('id', $user->id)->update(['active_warehouse_id' => $warehouseId]);
+
+        $warehouse = Warehouse::withoutGlobalScope(CompanyScope::class)->find($warehouseId);
 
         return ApiResponse::make('Success', [
             'status' => "success",
-            'warehouse' => $warehouse
+            'warehouse' => $warehouse,
+            'dsd'=>$warehouseId
         ]);
     }
 

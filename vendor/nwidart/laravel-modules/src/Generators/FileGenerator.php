@@ -9,47 +9,36 @@ class FileGenerator extends Generator
 {
     /**
      * The path wil be used.
-     *
-     * @var string
      */
-    protected $path;
+    protected string $path;
 
     /**
      * The contens will be used.
-     *
-     * @var string
      */
-    protected $contents;
+    protected string $contents;
 
     /**
      * The laravel filesystem or null.
-     *
-     * @var \Illuminate\Filesystem\Filesystem|null
      */
-    protected $filesystem;
+    protected ?Filesystem $filesystem;
+
     /**
-     * @var bool
+     * Overwrite File
      */
-    private $overwriteFile;
+    private bool $overwriteFile;
 
     /**
      * The constructor.
-     *
-     * @param $path
-     * @param $contents
-     * @param null $filesystem
      */
-    public function __construct($path, $contents, $filesystem = null)
+    public function __construct(string $path, string $contents, $filesystem = null)
     {
         $this->path = $path;
         $this->contents = $contents;
-        $this->filesystem = $filesystem ?: new Filesystem();
+        $this->filesystem = $filesystem ?: new Filesystem;
     }
 
     /**
      * Get contents.
-     *
-     * @return mixed
      */
     public function getContents()
     {
@@ -58,12 +47,8 @@ class FileGenerator extends Generator
 
     /**
      * Set contents.
-     *
-     * @param mixed $contents
-     *
-     * @return $this
      */
-    public function setContents($contents)
+    public function setContents(string $contents): self
     {
         $this->contents = $contents;
 
@@ -72,8 +57,6 @@ class FileGenerator extends Generator
 
     /**
      * Get filesystem.
-     *
-     * @return mixed
      */
     public function getFilesystem()
     {
@@ -82,12 +65,8 @@ class FileGenerator extends Generator
 
     /**
      * Set filesystem.
-     *
-     * @param Filesystem $filesystem
-     *
-     * @return $this
      */
-    public function setFilesystem(Filesystem $filesystem)
+    public function setFilesystem(Filesystem $filesystem): self
     {
         $this->filesystem = $filesystem;
 
@@ -96,8 +75,6 @@ class FileGenerator extends Generator
 
     /**
      * Get path.
-     *
-     * @return mixed
      */
     public function getPath()
     {
@@ -106,12 +83,8 @@ class FileGenerator extends Generator
 
     /**
      * Set path.
-     *
-     * @param mixed $path
-     *
-     * @return $this
      */
-    public function setPath($path)
+    public function setPath(string $path): self
     {
         $this->path = $path;
 
@@ -131,7 +104,7 @@ class FileGenerator extends Generator
     public function generate()
     {
         $path = $this->getPath();
-        if (!$this->filesystem->exists($path)) {
+        if (! $this->filesystem->exists($path)) {
             return $this->filesystem->put($path, $this->getContents());
         }
         if ($this->overwriteFile === true) {

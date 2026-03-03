@@ -14,14 +14,14 @@ class ConfigShowCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'config:show {config : The configuration file to show}';
+    protected $signature = 'config:show {config : The configuration file or key to show}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Display all of the values for a given configuration file';
+    protected $description = 'Display all of the values for a given configuration file or key';
 
     /**
      * Execute the console command.
@@ -32,16 +32,12 @@ class ConfigShowCommand extends Command
     {
         $config = $this->argument('config');
 
-        $data = config($config);
-
-        if (! $data) {
-            $this->components->error("Configuration file `{$config}` does not exist.");
-
-            return Command::FAILURE;
+        if (! config()->has($config)) {
+            $this->fail("Configuration file or key <comment>{$config}</comment> does not exist.");
         }
 
         $this->newLine();
-        $this->render($config, $data);
+        $this->render($config);
         $this->newLine();
 
         return Command::SUCCESS;
@@ -51,11 +47,12 @@ class ConfigShowCommand extends Command
      * Render the configuration values.
      *
      * @param  string  $name
-     * @param  mixed  $data
      * @return void
      */
-    public function render($name, $data)
+    public function render($name)
     {
+        $data = config($name);
+
         if (! is_array($data)) {
             $this->title($name, $this->formatValue($data));
 
