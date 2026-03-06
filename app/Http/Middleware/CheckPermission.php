@@ -2,22 +2,17 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Role;
 use Closure;
-use Examyou\RestAPI\Exceptions\ApiException;
 use Examyou\RestAPI\Exceptions\UnauthorizedException;
-use Illuminate\Support\Facades\Log;
-use Vinkla\Hashids\Facades\Hashids;
+use Illuminate\Support\Facades\DB;
 
 class CheckPermission
 {
-
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return mixed
+     * Resolves the user's role via the role_id column (reliable source of truth),
+     * then checks the role's permissions for the requested resource action.
      */
     public function handle($request, Closure $next)
     {
@@ -27,22 +22,25 @@ class CheckPermission
 
         $user = auth('api')->user();
 
-        $company = $user->company_id;
-        return $next($request);
-        if (!$company) {
+        if (!$user->company_id) {
             throw new UnauthorizedException("User has no company assigned");
         }
-        Log::info('dsd',[
-            'dsd'=>Role::find($user->x_role_id)
-        ]);
-        
-        // if ($user->r === 'admin') {
-        //     return $next($request);
-        // }
+
+        // Ensure the user has a role loaded (via role_id column)
+        $this->ensureRoleLoaded($user);
+
+        // Admin role has full access
+        if ($user->role && $user->role->name === 'admin') {
+            return $next($request);
+        }
 
         $resourceRequests = ['index', 'store', 'update', 'show', 'destroy'];
 
         $routeName = $request->route()->getName();
+        if (!$routeName) {
+            return $next($request);
+        }
+
         $urlArray = explode('.', $routeName);
 
         if (count($urlArray) < 3) {
@@ -52,59 +50,85 @@ class CheckPermission
         $routePathString = str_replace('-', '_', $urlArray[1]);
         $resourceRequestString = $urlArray[2];
 
-        /*
-    |--------------------------------------------------------------------------
-    | Special POS Check
-    |--------------------------------------------------------------------------
-    */
-        if ($routePathString === 'pos' && !$user->isAbleTo('pos_view', $company)) {
+        // Special POS permission check
+        if ($routePathString === 'pos' && !$this->userHasPermission($user, 'pos_view')) {
             throw new UnauthorizedException("Don't have valid permission");
         }
 
-        /*
-    |--------------------------------------------------------------------------
-    | Skip Some Routes
-    |--------------------------------------------------------------------------
-    */
+        // Routes that skip permission checks
         $skipResourcePath = ['payments'];
 
         if (
             in_array($resourceRequestString, $resourceRequests) &&
             !in_array($routePathString, $skipResourcePath)
         ) {
-
             if ($routePathString === 'langs') {
-                $routePathString = "translations";
+                $routePathString = 'translations';
             }
 
             $permission = null;
 
             if (in_array($resourceRequestString, ['index', 'show'])) {
                 $permission = $routePathString . '_view';
-            }
-
-            if ($resourceRequestString === 'store') {
+            } elseif ($resourceRequestString === 'store') {
                 $permission = $routePathString . '_create';
-            }
-
-            if ($resourceRequestString === 'update') {
+            } elseif ($resourceRequestString === 'update') {
                 $permission = $routePathString . '_edit';
-            }
-
-            if ($resourceRequestString === 'destroy') {
+            } elseif ($resourceRequestString === 'destroy') {
                 $permission = $routePathString . '_delete';
             }
 
-            /*
-        |--------------------------------------------------------------------------
-        | Final Permission Check
-        |--------------------------------------------------------------------------
-        */
-            if ($permission && !$user->isAbleTo($permission, $company)) {
+            if ($permission && !$this->userHasPermission($user, $permission)) {
                 throw new UnauthorizedException("Don't have valid permission");
             }
         }
 
         return $next($request);
+    }
+
+    /**
+     * Ensure the user's role relationship is loaded.
+     * Falls back to role_user pivot if role_id is not set.
+     */
+    private function ensureRoleLoaded($user): void
+    {
+        if ($user->relationLoaded('role') && $user->role) {
+            return;
+        }
+
+        $user->load([
+            'role' => fn($q) => $q->withoutGlobalScope(CompanyScope::class)
+                                  ->withoutGlobalScope('company_with_defaults'),
+            'role.permissions',
+        ]);
+
+        // Fallback: resolve role from role_user pivot if role_id column is empty
+        if (!$user->role && $user->id) {
+            $roleId = DB::table('role_user')
+                ->where('user_id', $user->id)
+                ->value('role_id');
+
+            if ($roleId) {
+                $user->role_id = $roleId;
+                $user->save();
+                $user->load([
+                    'role' => fn($q) => $q->withoutGlobalScope(CompanyScope::class)
+                                          ->withoutGlobalScope('company_with_defaults'),
+                    'role.permissions',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Check if the user's role has a specific permission.
+     */
+    private function userHasPermission($user, string $permissionName): bool
+    {
+        if (!$user->role || !$user->role->relationLoaded('permissions')) {
+            return false;
+        }
+
+        return $user->role->permissions->contains('name', $permissionName);
     }
 }

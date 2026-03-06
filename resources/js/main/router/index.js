@@ -24,7 +24,7 @@ const allActiveModules = window.config.modules;
 const isAdminCompanySetupCorrect = () => {
     var appSetting = store.state.auth.appSetting;
 
-    if (appSetting.x_currency_id == null || appSetting.x_warehouse_id == null) {
+    if (!appSetting || appSetting.x_currency_id == null || appSetting.x_warehouse_id == null) {
         return false;
     }
 
@@ -180,8 +180,22 @@ const checkLogFog = (to, from, next) => {
             return next({ name: 'admin.login' });
         }
 
+        // Onboarding guard: user is authenticated but has no company
+        if (to.meta.requireAuth && isAuthenticated) {
+            const appSetting = store.state.auth.appSetting;
+            const needsOnboarding = !appSetting || !appSetting.xid;
+
+            if (needsOnboarding && !to.meta.requireOnboarding) {
+                return next({ name: 'admin.onboarding' });
+            }
+
+            if (!needsOnboarding && to.meta.requireOnboarding) {
+                return next({ name: 'admin.dashboard.index' });
+            }
+        }
+
         // Check Company Admin Setup Completion (Warehouse, Currency, etc.)
-        if (to.meta.requireAuth && !isAdminCompanySetupCorrect() && routeParts[1] !== 'setup_app') {
+        if (to.meta.requireAuth && !isAdminCompanySetupCorrect() && routeParts[1] !== 'setup_app' && !to.meta.requireOnboarding) {
             return next({ name: 'admin.setup_app.index' });
         }
 

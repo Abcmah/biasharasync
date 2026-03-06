@@ -1,23 +1,23 @@
 {
-  "_OfflineRequestStatus-7560c6d7.js": {
-    "file": "assets/OfflineRequestStatus-7560c6d7.js",
+  "_OfflineRequestStatus-3bd70ef8.js": {
+    "file": "assets/OfflineRequestStatus-3bd70ef8.js",
     "imports": [
       "resources/js/app.js",
-      "_vendor-4a6eb15a.js"
+      "_vendor-95d93fd1.js"
     ]
   },
-  "_vendor-4a6eb15a.js": {
+  "_vendor-95d93fd1.js": {
     "dynamicImports": [
       "node_modules/html2canvas/dist/html2canvas.esm.js",
       "node_modules/dompurify/dist/purify.es.js",
       "node_modules/canvg/lib/index.es.js"
     ],
-    "file": "assets/vendor-4a6eb15a.js"
+    "file": "assets/vendor-95d93fd1.js"
   },
   "node_modules/canvg/lib/index.es.js": {
-    "file": "assets/index.es-fb6f28c0.js",
+    "file": "assets/index.es-d322d956.js",
     "imports": [
-      "_vendor-4a6eb15a.js"
+      "_vendor-95d93fd1.js"
     ],
     "isDynamicEntry": true,
     "src": "node_modules/canvg/lib/index.es.js"
@@ -33,15 +33,16 @@
     "src": "node_modules/html2canvas/dist/html2canvas.esm.js"
   },
   "resources/js/app.css": {
-    "file": "assets/app-d70c1ccd.css",
+    "file": "assets/app-3f685a8b.css",
     "src": "resources/js/app.css"
   },
   "resources/js/app.js": {
     "css": [
-      "assets/app-d70c1ccd.css"
+      "assets/app-3f685a8b.css"
     ],
     "dynamicImports": [
       "resources/js/main/views/auth/ResetPassword.vue",
+      "resources/js/main/views/auth/Onboarding.vue",
       "resources/js/common/layouts/Admin.vue",
       "resources/js/common/layouts/Admin.vue",
       "resources/js/common/layouts/Admin.vue",
@@ -55,26 +56,42 @@
       "resources/js/superadmin/router/index.js",
       "resources/js/superadmin/router/admin/index.js"
     ],
-    "file": "assets/app-1bafd958.js",
+    "file": "assets/app-9d8f060f.js",
     "imports": [
-      "_vendor-4a6eb15a.js"
+      "_vendor-95d93fd1.js"
     ],
     "isEntry": true,
     "src": "resources/js/app.js"
   },
   "resources/js/common/layouts/Admin.vue": {
-    "file": "assets/Admin-3be1af1f.js",
+    "file": "assets/Admin-c853021d.js",
     "imports": [
       "resources/js/app.js",
-      "_vendor-4a6eb15a.js"
+      "_vendor-95d93fd1.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/common/layouts/Admin.vue"
   },
-  "resources/js/main/views/auth/ResetPassword.vue": {
-    "file": "assets/ResetPassword-81f7a8af.js",
+  "resources/js/main/views/auth/Onboarding.css": {
+    "file": "assets/Onboarding-29a2f10e.css",
+    "src": "resources/js/main/views/auth/Onboarding.css"
+  },
+  "resources/js/main/views/auth/Onboarding.vue": {
+    "css": [
+      "assets/Onboarding-29a2f10e.css"
+    ],
+    "file": "assets/Onboarding-ef234202.js",
     "imports": [
-      "_vendor-4a6eb15a.js",
+      "_vendor-95d93fd1.js",
+      "resources/js/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/js/main/views/auth/Onboarding.vue"
+  },
+  "resources/js/main/views/auth/ResetPassword.vue": {
+    "file": "assets/ResetPassword-349cc679.js",
+    "imports": [
+      "_vendor-95d93fd1.js",
       "resources/js/app.js"
     ],
     "isDynamicEntry": true,
@@ -88,12 +105,12 @@
     "css": [
       "assets/index-4dc6fbf0.css"
     ],
-    "file": "assets/index-bae811ba.js",
+    "file": "assets/index-7734a6ac.js",
     "imports": [
       "resources/js/common/layouts/Admin.vue",
       "resources/js/app.js",
-      "_vendor-4a6eb15a.js",
-      "_OfflineRequestStatus-7560c6d7.js"
+      "_vendor-95d93fd1.js",
+      "_OfflineRequestStatus-3bd70ef8.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/superadmin/router/admin/index.js"
@@ -106,11 +123,11 @@
     "css": [
       "assets/index-b0074277.css"
     ],
-    "file": "assets/index-49217c6f.js",
+    "file": "assets/index-a7217e15.js",
     "imports": [
       "resources/js/app.js",
-      "_vendor-4a6eb15a.js",
-      "_OfflineRequestStatus-7560c6d7.js"
+      "_vendor-95d93fd1.js",
+      "_OfflineRequestStatus-3bd70ef8.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/superadmin/router/index.js"

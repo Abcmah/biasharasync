@@ -10,6 +10,7 @@ import HeaderSettings from '../views/website-settings/HeaderSettings.vue';
 import SeoSettings from '../views/website-settings/SeoSettings.vue';
 import CallToActionSettings from '../views/website-settings/CallToActionSettings.vue';
 import RegisterSettings from '../views/website-settings/RegisterSettings.vue';
+import BlogList from '../views/website-settings/blogs/BlogList.vue';
 
 export default [
     {
@@ -134,6 +135,17 @@ export default [
                     requireAuth: true,
                     menuParent: "website_settings",
                     menuKey: route => "website_seo_settings",
+                    permission: "superadmin"
+                }
+            },
+            {
+                path: 'blogs',
+                component: BlogList,
+                name: 'superadmin.website_settings.blogs.index',
+                meta: {
+                    requireAuth: true,
+                    menuParent: "website_settings",
+                    menuKey: route => "website_blog_settings",
                     permission: "superadmin"
                 }
             },

@@ -21,12 +21,6 @@ class CreateTaxesTable extends Migration
             $table->timestamps();
         });
 
-        // if (app_type() == 'non-saas') {
-        //     DB::table('taxes')->insert([
-        //         'name' => 'GST',
-        //         'rate' => 18,
-        //     ]);
-        // }
     }
 
     /**

@@ -276,7 +276,7 @@
         <table class="company-details" cellpadding="0" cellspacing="0" style="width: 100%">
 			<tr>
 				<td style="padding-bottom: 20px;">
-					<img src="{{ $company->light_logo_url }}" style="width: 200px; margin-top: 5px;" />
+					<img src="{{ $logoDataUri }}" style="width: 200px; margin-top: 5px;" />
 				</td>
 				<td style="margin-left: 100px; padding-left: 30%; padding-bottom: 20px;">
 					<table style="width: 100%">

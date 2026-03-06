@@ -40,4 +40,14 @@ export default [
             menuKey: (route) => "verify_product",
         },
     },
+    {
+        path: "/admin/onboarding",
+        component: () => import("../views/auth/Onboarding.vue"),
+        name: "admin.onboarding",
+        meta: {
+            requireAuth: true,
+            requireOnboarding: true,
+            menuKey: (route) => "onboarding",
+        },
+    },
 ];

@@ -24,18 +24,21 @@ trait UserTraits
         $query = $query->leftJoin('user_warehouse', 'users.id', '=', 'user_warehouse.user_id')
                        ->join('roles', 'roles.id', '=', 'users.role_id');
 
-        if($this->userType == 'staff_members') {
+        if ($this->userType == 'staff_members') {
             $user = user();
             $query = $query->where('users.company_id', $user->company_id);
         }
 
-        // records of current warehouse
-        $query = $query->where(function($qury) use($warehouse) {
-                $qury->where('user_warehouse.warehouse_id', $warehouse->id)
-                    ->orWhere('roles.name', '=', 'admin');
+        // Show users assigned to current warehouse, plus users whose role
+        // grants full access (determined by having no warehouse restriction).
+        $query = $query->where(function ($qury) use ($warehouse) {
+            $qury->where('user_warehouse.warehouse_id', $warehouse->id)
+                 ->orWhereNotExists(function ($sub) {
+                     $sub->select(DB::raw(1))
+                         ->from('user_warehouse')
+                         ->whereColumn('user_warehouse.user_id', 'users.id');
+                 });
         });
-
-
 
         $query = $query->where('users.user_type', $this->userType);
 
@@ -54,10 +57,17 @@ trait UserTraits
         }
 
         if ($user->user_type == 'staff_members') {
-            $user->role_id = $loggedUser->ability('admin', 'assign_role') && $request->has('role_id') && $request->role_id ? $this->getIdFromHash($request->role_id) : $loggedUser->role_id;
+            // Role is required — validated via StoreRequest, decoded here
+            if (!$request->has('role_id') || !$request->role_id) {
+                throw new ApiException("Role is required for staff members");
+            }
+
+            $roleId = $this->getIdFromHash($request->role_id);
+            $this->validateRoleBelongsToCompany($roleId, $company);
+            $user->role_id = $roleId;
         }
 
-        $user->warehouse_id = $loggedUser->hasRole('admin') ? $request->warehouse_id : $warehouse->id;
+        $user->warehouse_id = $this->resolveWarehouseId($loggedUser, $request, $warehouse);
         $user->created_by = $loggedUser->id;
         $user->lang_id = $company->lang_id;
 
@@ -66,12 +76,10 @@ trait UserTraits
 
     public function stored($user)
     {
-        $this->saveAndUpdateRole($user);
+        $this->syncRoleAndWarehouses($user);
 
-        // Notifying to Warehouse
         Notify::send('staff_member_create', $user);
 
-        // Updating Company Total Users
         Common::calculateTotalUsers($user->company_id, true);
     }
 
@@ -79,46 +87,47 @@ trait UserTraits
     {
         $loggedUser = user();
         $request = request();
-        // Can not change role because only one
-        // Admin exists for whole app
-        if ($user->user_type == "staff_members") {
-            $adminRoleUserCount = Role::join('role_user', 'roles.id', '=', 'role_user.role_id')
-                ->where('roles.name', '=', 'admin')
-                ->count('role_user.user_id');
-
-            if ($adminRoleUserCount <= 1 && $user->isDirty('role_id')) {
-                throw new ApiException("Can not change role because you are only admin of app");
-            }
-        }
-
-        if ($loggedUser->id == $user->id && $user->isDirty('role_id')) {
-            throw new ApiException("You can not change your role.");
-        }
 
         if ($user->user_type != $this->userType) {
             throw new ApiException("Don't have valid permission");
         }
 
-        // If logged in user is not admin
-        // then cannot update user who are
-        // of other warehouse
-        if (!$loggedUser->hasRole('admin') && $user->user_type == 'staff_members' && $loggedUser->warehouse_id != $user->warehouse_id) {
-            throw new ApiException("Don't have valid permission");
+        // Prevent users from changing their own role
+        if ($loggedUser->id == $user->id && $user->isDirty('role_id')) {
+            throw new ApiException("You can not change your role.");
         }
 
-        // Demo mode admin cannot be edit
-        // email, password, status, role_id
+        // If this user currently has admin role, ensure they're not the last admin
+        if ($user->user_type == 'staff_members' && $user->isDirty('role_id')) {
+            $this->ensureNotLastAdmin($user);
+        }
+
+        // Non-admin users cannot update staff from other warehouses
+        if (!$this->loggedUserIsAdmin($loggedUser) && $user->user_type == 'staff_members') {
+            if ($loggedUser->warehouse_id != $user->warehouse_id) {
+                throw new ApiException("Don't have valid permission");
+            }
+        }
+
+        // Demo mode protection
         if (env('APP_ENV') == 'production' && ($user->isDirty('password') || $user->isDirty('email') || $user->isDirty('status') || $user->isDirty('role_id'))) {
-            if ($user->user_type == 'staff_members' && ($user->getOriginal('email') == 'admin@example.com' || $user->getOriginal('email') == 'stockmanager@example.com' || $user->getOriginal('email') == 'salesman@example.com')) {
+            if ($user->user_type == 'staff_members' && in_array($user->getOriginal('email'), ['admin@example.com', 'stockmanager@example.com', 'salesman@example.com'])) {
                 throw new ApiException('Not Allowed In Demo Mode');
             }
         }
 
         if ($user->user_type == 'staff_members') {
-            $user->role_id = $loggedUser->ability('admin', 'assign_role') && $request->has('role_id') && $request->role_id ? $this->getIdFromHash($request->role_id) : $user->getOriginal('role_id');
+            if ($request->has('role_id') && $request->role_id) {
+                $roleId = $this->getIdFromHash($request->role_id);
+                $this->validateRoleBelongsToCompany($roleId, company());
+                $user->role_id = $roleId;
+            } else {
+                // Keep existing role if not provided
+                $user->role_id = $user->getOriginal('role_id');
+            }
         }
 
-        if ($loggedUser->hasRole('admin')) {
+        if ($this->loggedUserIsAdmin($loggedUser)) {
             $user->warehouse_id = $request->warehouse_id;
         }
 
@@ -127,23 +136,24 @@ trait UserTraits
 
     public function updated($user)
     {
-        $this->saveAndUpdateRole($user);
+        $this->syncRoleAndWarehouses($user);
 
-        // Notifying to Warehouse
         Notify::send('staff_member_update', $user);
     }
 
-    public function saveAndUpdateRole($user)
+    /**
+     * Sync the Laratrust role_user pivot and warehouse assignments for a staff member.
+     */
+    public function syncRoleAndWarehouses($user)
     {
         $request = request();
 
-        // Only For Staff Members
-        if ($user->user_type == 'staff_members') {
-            DB::table('role_user')->where('user_id', $user->id)->delete();
-            $user->addRole($user->role_id, $user->company_id);
+        if ($user->user_type == 'staff_members' && $user->role_id) {
+            // Use Laratrust syncRoles to replace any existing pivot entries
+            $user->syncRoles([$user->role_id]);
         }
 
-        // Deleting Staff Member Warehouses
+        // Sync warehouse assignments
         UserWarehouse::where('user_id', $user->id)->delete();
         if ($request->has('warehouses')) {
             foreach ($request->warehouses as $selectedWarehouse) {
@@ -172,28 +182,17 @@ trait UserTraits
             throw new ApiException('Can not delete company root admin');
         }
 
-        if (env('APP_ENV') == 'production' && $user->user_type == 'staff_members' && ($user->getOriginal('email') == 'admin@example.com' || $user->getOriginal('email') == 'stockmanager@example.com' || $user->getOriginal('email') == 'salesman@example.com')) {
+        if (env('APP_ENV') == 'production' && $user->user_type == 'staff_members' && in_array($user->getOriginal('email'), ['admin@example.com', 'stockmanager@example.com', 'salesman@example.com'])) {
             throw new ApiException('Not Allowed In Demo Mode');
         }
 
-        // If application have only one admin
-        // Then staff member cannot be deleted
-        if ($user->user_type == "staff_members") {
-            if ($user->role_id) {
-                $userRole = Role::find($user->role_id);
+        // Prevent deleting the last admin
+        if ($user->user_type == 'staff_members' && $user->role_id) {
+            $this->ensureNotLastAdmin($user, true);
+        }
 
-                if ($userRole && $userRole->name == 'admin') {
-                    $adminRoleUserCount = Role::join('role_user', 'roles.id', '=', 'role_user.role_id')
-                        ->where('roles.name', '=', 'admin')
-                        ->count('role_user.user_id');
-
-                    if ($adminRoleUserCount <= 1) {
-                        throw new ApiException('You are the only admin of app. So not able to delete.');
-                    }
-                }
-            }
-
-            if (!$loggedUser->hasRole('admin') && $loggedUser->warehouse_id != $user->warehouse_id) {
+        if (!$this->loggedUserIsAdmin($loggedUser) && $user->user_type == 'staff_members') {
+            if ($loggedUser->warehouse_id != $user->warehouse_id) {
                 throw new ApiException("Don't have valid permission");
             }
         }
@@ -207,10 +206,11 @@ trait UserTraits
 
     public function destroyed($user)
     {
-        // Updating Company Total Users
+        // Clean up Laratrust pivot entries
+        $user->syncRoles([]);
+
         Common::calculateTotalUsers($user->company_id, true);
 
-        // Notifying to Warehouse
         Notify::send('staff_member_delete', $user);
     }
 
@@ -222,4 +222,70 @@ trait UserTraits
 
         return ApiResponse::make('Imported Successfully', []);
     }
-};
+
+    /**
+     * Validate that the given role ID belongs to the user's company or is a default role.
+     */
+    private function validateRoleBelongsToCompany(int $roleId, $company): void
+    {
+        $role = Role::withoutGlobalScopes()->find($roleId);
+
+        if (!$role) {
+            throw new ApiException("The selected role does not exist.");
+        }
+
+        // Role must be either a default role (company_id = null) or belong to this company
+        if ($role->company_id !== null && $role->company_id != $company->id) {
+            throw new ApiException("The selected role does not belong to your company.");
+        }
+    }
+
+    /**
+     * Check if logged user has admin role, using the role_id column as the reliable source.
+     */
+    private function loggedUserIsAdmin($loggedUser): bool
+    {
+        if (!$loggedUser || !$loggedUser->role) {
+            return false;
+        }
+
+        return $loggedUser->role->name === 'admin';
+    }
+
+    /**
+     * Ensure the user being modified is not the last admin.
+     * @param bool $deleting Whether we're deleting (checks differently than role change)
+     */
+    private function ensureNotLastAdmin($user, bool $deleting = false): void
+    {
+        $currentRole = Role::withoutGlobalScopes()->find($user->getOriginal('role_id'));
+
+        if (!$currentRole || $currentRole->name !== 'admin') {
+            return;
+        }
+
+        // Count admins via the role_user pivot (Laratrust) within this company
+        $adminRoleCount = DB::table('role_user')
+            ->where('role_id', $currentRole->id)
+            ->count();
+
+        if ($adminRoleCount <= 1) {
+            $message = $deleting
+                ? 'You are the only admin. Cannot delete this user.'
+                : 'Cannot change role — this is the only admin.';
+            throw new ApiException($message);
+        }
+    }
+
+    /**
+     * Resolve which warehouse_id to assign based on the logged user's role.
+     */
+    private function resolveWarehouseId($loggedUser, $request, $warehouse)
+    {
+        if ($this->loggedUserIsAdmin($loggedUser)) {
+            return $request->warehouse_id;
+        }
+
+        return $warehouse->id;
+    }
+}

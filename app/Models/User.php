@@ -9,14 +9,16 @@ use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 use Laratrust\Contracts\LaratrustUser;
 use Laratrust\Traits\HasRolesAndPermissions;
 use Illuminate\Auth\Authenticatable;
+use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Hash as FacadesHash;
 
-class User extends BaseModel implements AuthenticatableContract, JWTSubject, LaratrustUser
+class User extends BaseModel implements AuthenticatableContract, CanResetPasswordContract, JWTSubject, LaratrustUser
 {
-    use Notifiable, HasRolesAndPermissions, Authenticatable, HasFactory;
+    use Notifiable, HasRolesAndPermissions, Authenticatable, CanResetPassword, HasFactory;
 
     protected $default = ["xid", "name", "profile_image"];
 

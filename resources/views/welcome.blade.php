@@ -280,37 +280,38 @@
 </head>
 
 <body>
-    <div id="app">
-        <div class="loading-app-container" id="appLoader">
-            <div class="loader-card">
-                <div class="loader-image-wrapper">
-                    <img src="{{ $loadingImage }}" alt="App Logo" class="floating-logo">
-                </div>
+    <!-- Preloader: outside #app so Vue mounting doesn't destroy it -->
+    <div class="loading-app-container" id="appLoader">
+        <div class="loader-card">
+            <div class="loader-image-wrapper">
+                <img src="{{ $loadingImage }}" alt="App Logo" class="floating-logo">
+            </div>
 
-                @if (isset($loadingLangMessageLang))
-                    <div class="loader-text" id="loaderMainText">
-                        {{ $loadingLangMessageLang }}
-                    </div>
-                @endif
-
-                <!-- Premium Linear Progress Bar -->
-                <div class="progress-wrapper">
-                    <div class="progress-container-app">
-                        <div class="progress-bar-app" id="appProgressBar"></div>
-                    </div>
-                    <div class="progress-percentage" id="appProgressPercentage">0%</div>
-                    <div class="loading-message" id="appLoadingMessage"></div>
+            @if (isset($loadingLangMessageLang))
+                <div class="loader-text" id="loaderMainText">
+                    {{ $loadingLangMessageLang }}
                 </div>
+            @endif
 
-                <!-- Animated Dots -->
-                <div class="loader-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+            <!-- Premium Linear Progress Bar -->
+            <div class="progress-wrapper">
+                <div class="progress-container-app">
+                    <div class="progress-bar-app" id="appProgressBar"></div>
                 </div>
+                <div class="progress-percentage" id="appProgressPercentage">0%</div>
+                <div class="loading-message" id="appLoadingMessage"></div>
+            </div>
+
+            <!-- Animated Dots -->
+            <div class="loader-dots">
+                <span></span>
+                <span></span>
+                <span></span>
             </div>
         </div>
     </div>
+
+    <div id="app"></div>
     <script>
         window.config = {
             'path': '{{ url('/') }}',
@@ -345,20 +346,12 @@
     </script>
 
     @vite('resources/js/app.js')
-     <script>
-        // === PREMIUM LINEAR PROGRESS LOADER WITH FAST LOADING ILLUSION ===
-        (function() {
-            // Configuration for perceived fast loading
-            const config = {
-                minLoadTime: 1000,       // Minimum loading time (ms)
-                maxLoadTime: 2800,       // Maximum loading time (ms)
-                fastPhaseEnd: 45,        // Progress % where fast phase ends
-                slowPhaseEnd: 80,        // Progress % where slow phase ends
-                updateInterval: 40,      // Update interval (ms) - smoother at 40ms
-            };
-
-            // Dynamic loading messages that build anticipation
-            const loadingMessages = [
+    <script>
+        // === VUE-AWARE PRELOADER WITH PERCEIVED PERFORMANCE ===
+        // Progress races to ~85% fast (Gmail-style illusion), then waits
+        // for Vue to call window.__appReady() before completing to 100%.
+        (function () {
+            var loadingMessages = [
                 'Initializing application...',
                 'Loading resources...',
                 'Preparing workspace...',
@@ -369,121 +362,100 @@
                 'Finalizing...',
             ];
 
-            // Get elements
-            const appLoader = document.getElementById('appLoader');
-            const progressBar = document.getElementById('appProgressBar');
-            const progressPercentage = document.getElementById('appProgressPercentage');
-            const loadingMessage = document.getElementById('appLoadingMessage');
-            const loaderMainText = document.getElementById('loaderMainText');
+            var appLoader = document.getElementById('appLoader');
+            var progressBar = document.getElementById('appProgressBar');
+            var progressPercentage = document.getElementById('appProgressPercentage');
+            var loadingMessage = document.getElementById('appLoadingMessage');
+            var loaderMainText = document.getElementById('loaderMainText');
 
-            let progress = 0;
-            let messageIndex = 0;
-            const startTime = Date.now();
+            var progress = 0;
+            var messageIndex = 0;
+            var vueReady = false;
+            var interval = 40; // ms per tick
 
-            // Calculate dynamic loading time with slight randomness
-            const loadingTime = config.minLoadTime + Math.random() * (config.maxLoadTime - config.minLoadTime);
+            // Phase 1: Fast start – race to 85% with variable speed
+            function tick() {
+                if (vueReady) return; // completion handled by finishLoading()
 
-            function updateProgress() {
-                const elapsed = Date.now() - startTime;
-                const timeProgress = (elapsed / loadingTime) * 100;
-
-                // Psychological illusion: Variable speeds create perception of fast loading
-                if (progress < config.fastPhaseEnd) {
-                    // FAST START: 0-45% loads quickly (users perceive speed immediately)
-                    progress += (1.2 + Math.random() * 2.5); // 1.2-3.7% per tick
-                } else if (progress < config.slowPhaseEnd) {
-                    // NATURAL SLOWDOWN: 45-80% (expected behavior, builds anticipation)
-                    progress += (0.3 + Math.random() * 0.8); // 0.3-1.1% per tick
-                } else if (progress < 92) {
-                    // FINAL ACCELERATION: 80-92% (gives impression of completion)
-                    progress += (0.5 + Math.random() * 1.2); // 0.5-1.7% per tick
-                } else if (timeProgress >= 100) {
-                    // Complete when actual time is up
-                    progress = 100;
-                } else {
-                    // Hold at 92-99% until actual loading completes (prevents stuck at 100%)
-                    progress = 92 + (timeProgress - 92) * 0.08;
+                if (progress < 45) {
+                    progress += 1.2 + Math.random() * 2.5;   // fast burst
+                } else if (progress < 70) {
+                    progress += 0.3 + Math.random() * 0.8;   // natural slowdown
+                } else if (progress < 85) {
+                    progress += 0.15 + Math.random() * 0.35;  // crawl toward cap
                 }
+                // Stall at 85 – never cross it until Vue signals ready
+                progress = Math.min(progress, 85);
 
-                // Cap at 100%
-                progress = Math.min(progress, 100);
+                applyProgress(progress);
+                setTimeout(tick, interval);
+            }
 
-                // Update UI elements
-                if (progressBar) {
-                    progressBar.style.width = progress + '%';
-                }
+            function applyProgress(value) {
+                if (progressBar)       progressBar.style.width = value + '%';
+                if (progressPercentage) progressPercentage.textContent = Math.floor(value) + '%';
 
-                if (progressPercentage) {
-                    progressPercentage.textContent = Math.floor(progress) + '%';
-                }
-
-                // Update loading message at milestones
-                const newMessageIndex = Math.min(
-                    Math.floor((progress / 100) * loadingMessages.length),
+                var idx = Math.min(
+                    Math.floor((value / 100) * loadingMessages.length),
                     loadingMessages.length - 1
                 );
-
-                if (newMessageIndex > messageIndex && loadingMessage) {
-                    messageIndex = newMessageIndex;
-                    // Reset animation
+                if (idx > messageIndex && loadingMessage) {
+                    messageIndex = idx;
                     loadingMessage.style.animation = 'none';
-                    setTimeout(() => {
+                    setTimeout(function () {
                         loadingMessage.textContent = loadingMessages[messageIndex];
                         loadingMessage.style.animation = 'fadeSlideUp 0.5s ease';
                     }, 50);
                 }
-
-                // Continue or finish
-                if (progress < 100) {
-                    setTimeout(updateProgress, config.updateInterval);
-                } else {
-                    finishLoading();
-                }
             }
 
+            // Phase 2: Called by Vue after app.mount() – animate 85→100% then fade out
             function finishLoading() {
-                // Show completion state
-                if (loaderMainText) {
-                    loaderMainText.textContent = 'Ready! 🎉';
-                }
+                if (vueReady) return;
+                vueReady = true;
 
-                if (loadingMessage) {
-                    loadingMessage.textContent = 'Loading complete';
-                }
+                var remaining = 100 - progress;
+                var steps = 8;
+                var step = 0;
 
-                // Wait brief moment then fade out
-                setTimeout(() => {
-                    if (appLoader) {
-                        appLoader.classList.add('fade-out');
+                function completeStep() {
+                    step++;
+                    progress = Math.min(progress + remaining / steps, 100);
+                    applyProgress(progress);
+
+                    if (step < steps) {
+                        setTimeout(completeStep, 30);
+                    } else {
+                        // Show "Ready" briefly, then fade out
+                        if (loaderMainText) loaderMainText.textContent = 'Ready!';
+                        if (loadingMessage) loadingMessage.textContent = 'Loading complete';
+
+                        setTimeout(function () {
+                            if (appLoader) appLoader.classList.add('fade-out');
+
+                            // Remove from DOM after CSS transition finishes
+                            setTimeout(function () {
+                                if (appLoader && appLoader.parentNode) {
+                                    appLoader.parentNode.removeChild(appLoader);
+                                }
+                            }, 600);
+                        }, 300);
                     }
+                }
 
-                    // Remove from DOM after fade completes
-                    setTimeout(() => {
-                        if (appLoader && appLoader.parentNode) {
-                            appLoader.parentNode.removeChild(appLoader);
-                        }
-                    }, 600);
-                }, 500);
+                completeStep();
             }
 
-            // Start the progress animation immediately
-            updateProgress();
+            // Expose the ready signal for Vue
+            window.__appReady = finishLoading;
 
-            // Safety fallback: Force complete if page fully loads
-            window.addEventListener('load', function() {
-                if (progress < 100) {
-                    // Jump to near completion if page loads faster than expected
-                    progress = Math.max(progress, 90);
-                }
-            });
+            // Safety: if Vue never calls __appReady, force-complete after 15 s
+            setTimeout(function () {
+                if (!vueReady) finishLoading();
+            }, 15000);
 
-            // Alternative trigger: Complete on DOMContentLoaded
-            document.addEventListener('DOMContentLoaded', function() {
-                if (progress < 85) {
-                    // Ensure minimum progress
-                    progress = Math.max(progress, 70);
-                }
-            });
+            // Start the illusion immediately
+            tick();
         })();
     </script>
 </body>

@@ -151,6 +151,19 @@
 					</template>
 					{{ $t("menu.website_seo_settings") }}
 				</a-menu-item>
+				<a-menu-item
+					key="website_blog_settings"
+					@click="
+						$router.push({
+							name: 'superadmin.website_settings.blogs.index',
+						})
+					"
+				>
+					<template #icon>
+						<ReadOutlined />
+					</template>
+					Blog Management
+				</a-menu-item>
 			</a-menu>
 		</perfect-scrollbar>
 	</div>
@@ -170,6 +183,7 @@ import {
 	TrophyOutlined,
 	CodeOutlined,
 	FileSearchOutlined,
+	ReadOutlined,
 } from "@ant-design/icons-vue";
 import { useRoute } from "vue-router";
 import { useStore } from "vuex";
@@ -188,6 +202,7 @@ export default defineComponent({
 		TrophyOutlined,
 		CodeOutlined,
 		FileSearchOutlined,
+		ReadOutlined,
 	},
 	setup() {
 		const { appSetting, user, permsArray, appModules } = common();

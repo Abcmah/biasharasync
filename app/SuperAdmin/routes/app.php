@@ -3,15 +3,7 @@
 use Illuminate\Http\Request;
 use Examyou\RestAPI\Facades\ApiRoute;
 use Illuminate\Support\Facades\Route;
-Route::get('/process-reset-link', function(Request $request){
-    $email = $request->query('email');
-    $token = $request->query('token');
-
-    return redirect("/admin/reset-password?token=$token&email=$email");
-})->name('password.reset');
-Route::post('api/v1/auth/reset-password', [\App\SuperAdmin\Http\Controllers\Api\SuperAdminPasswordReset::class, 'reset']);
-
-Route::post('api/v1/auth/forgot-password', [\App\SuperAdmin\Http\Controllers\Api\SuperAdminPasswordReset::class, 'forgotPassword']);
+// Password reset routes handled by PasswordResetController in routes/api.php
 ApiRoute::group(['namespace' => 'App\SuperAdmin\Http\Controllers\Api'], function () {
     ApiRoute::get('global-setting', ['as' => 'api.extra.global-setting', 'uses' => 'SuperAdminAuthController@globalSetting']);
     ApiRoute::get('app', ['as' => 'api.extra.app', 'uses' => 'SuperAdminAuthController@appDetails']);

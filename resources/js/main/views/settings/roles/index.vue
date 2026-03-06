@@ -79,12 +79,7 @@
                                     selectedRowKeys: table.selectedRowKeys,
                                     onChange: onRowSelectChange,
                                     getCheckboxProps: (record) => ({
-                                        disabled:
-                                            (permsArray.includes('roles_delete') ||
-                                                permsArray.includes('admin')) &&
-                                            record.name != 'admin'
-                                                ? false
-                                                : true,
+                                        disabled: isDefaultRole(record),
                                         name: record.xid,
                                     }),
                                 }"
@@ -103,7 +98,7 @@
                                             v-if="
                                                 (permsArray.includes('roles_edit') ||
                                                     permsArray.includes('admin')) &&
-                                                record.name != 'admin'
+                                                !isDefaultRole(record)
                                             "
                                             type="primary"
                                             @click="editItem(record)"
@@ -115,7 +110,7 @@
                                             v-if="
                                                 (permsArray.includes('roles_delete') ||
                                                     permsArray.includes('admin')) &&
-                                                record.name != 'admin'
+                                                !isDefaultRole(record)
                                             "
                                             type="primary"
                                             @click="showDeleteConfirm(record.xid)"
@@ -123,6 +118,9 @@
                                         >
                                             <template #icon><DeleteOutlined /></template>
                                         </a-button>
+                                        <a-tag v-if="isDefaultRole(record)" color="blue">
+                                            {{ $t("role.system_default") || "System Default" }}
+                                        </a-tag>
                                     </template>
                                 </template>
                             </a-table>
@@ -165,6 +163,11 @@ export default {
         } = fields();
         const crudVariables = crud();
 
+        // Default roles (company_id = null) cannot be edited or deleted
+        const isDefaultRole = (record) => {
+            return !record.company_id;
+        };
+
         onMounted(() => {
             getPreFetchData();
 
@@ -189,8 +192,8 @@ export default {
             columns,
             ...crudVariables,
             filterableColumns,
-
             preFetchData,
+            isDefaultRole,
         };
     },
 };

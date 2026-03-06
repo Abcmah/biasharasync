@@ -39,8 +39,8 @@ class CreateFrontWebsiteSettingsTable extends Migration
             $table->text('contact_info_widget');
             $table->text('links_widget');
 
-            $table->string('footer_company_description', 1000)->default("Stockify have many propular products wiht high discount and special offers.");
-            $table->string('footer_copyright_text', 1000)->default("Copyright 2021 @ Stockify, All rights reserved.");
+            $table->string('footer_company_description', 1000)->nullable();
+            $table->string('footer_copyright_text', 1000)->default("Copyright 2026 @ Biashara Sync, All rights reserved.");
 
             $table->text('top_banners');
             $table->text('bottom_banners_1');

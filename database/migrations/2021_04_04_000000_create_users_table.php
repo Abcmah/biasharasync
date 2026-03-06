@@ -19,26 +19,28 @@ class CreateUsersTable extends Migration
             $table->id();
             $table->bigInteger('warehouse_id')->unsigned()->nullable()->default(null);
             $table->foreign('warehouse_id')->references('id')->on('warehouses')->onUpdate('cascade')->onDelete('cascade');
-            $table->bigInteger('role_id')->unsigned()->nullable()->default(null);
+            $table->bigInteger('role_id')->unsigned()->nullable();
             $table->string('user_type')->default('customers');
             $table->boolean('login_enabled')->default(true);
             $table->string('name');
-            $table->string('email');
+            $table->string('email')->index();
             $table->string('password')->nullable();
-            $table->string('phone')->nullable()->default(null);
+            $table->string('phone')->nullable()->default(null)->index();
             $table->string('profile_image')->nullable()->default(null);
             $table->string('address', 1000)->nullable()->default(null);
             $table->string('shipping_address', 1000)->nullable()->default(null);
             $table->string('email_verification_code', 50)->nullable()->default(null);
+            $table->timestamp('email_verified_at')->nullable();
 
-            $table->string('status')->default('enabled');
-            $table->string('reset_code')->nullable()->default(null);
-
-            $table->string('timezone', 50)->default('Asia/Kolkata');
+            $table->string('status',30)->default('enabled')->index();
+        
+            $table->string('tax_number')->nullable();
+            $table->string('timezone', 50)->default('Africa/Nairobi');
             $table->string('date_format', 20)->default('d-m-Y');
             $table->string('date_picker_format', 20)->default('dd-mm-yyyy');
             $table->string('time_format', 20)->default('h:i a');
-
+             $table->string('google_id')->nullable()->unique()->after('email');
+            $table->rememberToken();
             $table->timestamps();
         });
 
@@ -65,15 +67,6 @@ class CreateUsersTable extends Migration
 
             $table->timestamps();
         });
-
-        if (app_type() == 'non-saas') {
-            DB::table('users')->insert([
-                'name' => 'Admin',
-                'email' => 'admin@example.com',
-                'password' => Hash::make('12345678'),
-                'user_type' => 'staff_members',
-            ]);
-        }
     }
 
     /**

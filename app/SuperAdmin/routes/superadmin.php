@@ -1,6 +1,8 @@
 <?php
 
 use Examyou\RestAPI\Facades\ApiRoute;
+use Illuminate\Support\Facades\Route;
+use App\SuperAdmin\Http\Controllers\Api\BlogController;
 
 // Admin Subscription Route
 ApiRoute::group(['namespace' => 'App\SuperAdmin\Http\Controllers\Api\Admin', 'middleware' => ['api.permission.check', 'api.auth.check']], function () {
@@ -91,4 +93,17 @@ ApiRoute::group(['namespace' => 'App\SuperAdmin\Http\Controllers\Api', 'prefix' 
         ApiRoute::post('authorize/update', ['as' => 'api.payment-settings.authorize.update', 'uses' => 'PaymentSettingsController@updateAuthorize']);
         ApiRoute::get('authorize', ['as' => 'api.payment-settings.authorize.index', 'uses' => 'PaymentSettingsController@getAuthorize']);
     });
+});
+
+// Blog Management (standard Route, outside ApiRoute group, same superadmin middleware)
+Route::prefix('api/v1/superadmin/blogs')->middleware(['api.superadmin.check'])->group(function () {
+    Route::get('/', [BlogController::class, 'index']);
+    Route::post('/', [BlogController::class, 'store']);
+    Route::get('{id}', [BlogController::class, 'show']);
+    Route::post('{id}', [BlogController::class, 'update']);
+    Route::delete('{id}', [BlogController::class, 'destroy']);
+    Route::post('{id}/toggle-publish', [BlogController::class, 'togglePublish']);
+    Route::get('{id}/comments', [BlogController::class, 'comments']);
+    Route::post('comments/{id}/status', [BlogController::class, 'updateCommentStatus']);
+    Route::delete('comments/{id}', [BlogController::class, 'deleteComment']);
 });

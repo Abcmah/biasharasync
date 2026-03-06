@@ -4,7 +4,7 @@
     <div class="breadcrumb-container">
         <div class="breadcrumb-content">
             <h1 class="breadcrumb-main-title">{{ $breadcrumbTitle }}</h1>
-            <div class="breadcrumb-nav" aria-label="breadcrumb">
+            <nav class="breadcrumb-nav" aria-label="breadcrumb">
                 <ol class="breadcrumb-list">
                     <li class="breadcrumb-item">
                         <a href="{{ route('front.index') }}">{{ $frontSetting->home_text }}</a>
@@ -16,7 +16,7 @@
                         {{ $breadcrumbTitle }}
                     </li>
                 </ol>
-            </div>
+            </nav>
         </div>
     </div>
 </section>

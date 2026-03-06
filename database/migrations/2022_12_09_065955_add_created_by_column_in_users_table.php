@@ -39,10 +39,6 @@ class AddCreatedByColumnInUsersTable extends Migration
             $table->foreign('warehouse_id')->references('id')->on('products')->onDelete('set null')->onUpdate('cascade');
         });
 
-        Schema::table('payment_modes', function (Blueprint $table) {
-            $table->string('mode_type')->nullable()->default('bank')->after('name');
-            $table->text('credentials')->nullable()->default(null)->after('mode_type');
-        });
 
         // Setting name=Cash to  mode_type=>cash
         $allCompanies = DB::table('companies')->where('is_global', 0)->get();
@@ -134,9 +130,5 @@ class AddCreatedByColumnInUsersTable extends Migration
             });
         }
 
-        Schema::table('payment_modes', function (Blueprint $table) {
-            $table->dropColumn('mode_type');
-            $table->dropColumn('credentials');
-        });
     }
 }

@@ -23,12 +23,14 @@
 
                                 <a-form-item :label="$t('user.password')" name="password"
                                     v-bind="validateInfos.password">
-                                    <a-input-password v-model:value="resetData.password"
+                                    <a-input-password 
+                                    size="large" v-model:value="resetData.password"
                                         :placeholder="$t('user.password')" />
                                 </a-form-item>
 
                                 <a-form-item :label="$t('user.confirm_password')" name="password_confirmation">
-                                    <a-input-password v-model:value="resetData.password_confirmation"
+                                    <a-input-password 
+                                    size="large" v-model:value="resetData.password_confirmation"
                                         :placeholder="$t('user.confirm_password')" />
                                 </a-form-item>
 

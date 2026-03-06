@@ -2,27 +2,32 @@
 
 namespace App\Http\Requests\Api\Role;
 
+use App\Models\Role;
+use Examyou\RestAPI\Exceptions\ApiException;
 use Illuminate\Foundation\Http\FormRequest;
+use Vinkla\Hashids\Facades\Hashids;
 
 class DeleteRequest extends FormRequest
 {
-	/**
-	 * Determine if the user is authorized to make this request.
-	 *
-	 * @return bool
-	 */
-	public function authorize()
-	{
-		return true;
-	}
+    public function authorize()
+    {
+        $convertedId = Hashids::decode($this->route('role'));
+        if (empty($convertedId)) {
+            return false;
+        }
 
-	/**
-	 * Get the validation rules that apply to the request.
-	 *
-	 * @return array
-	 */
-	public function rules()
-	{
-		return [];
-	}
+        $role = Role::withoutGlobalScopes()->find($convertedId[0]);
+
+        // Reject deletion of default system roles at the request level
+        if ($role && $role->isDefault()) {
+            throw new ApiException('Default system roles cannot be deleted.');
+        }
+
+        return true;
+    }
+
+    public function rules()
+    {
+        return [];
+    }
 }

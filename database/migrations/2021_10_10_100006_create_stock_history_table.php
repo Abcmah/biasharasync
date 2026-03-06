@@ -22,8 +22,8 @@ class CreateStockHistoryTable extends Migration
 			$table->float('quantity', 8, 2);
 			$table->float('old_quantity', 8, 2)->default(0);
 			$table->string('order_type', 20)->nullable()->default('sales');
-			$table->string('stock_type', 20)->default('in');
-			$table->string('action_type', 20)->default('add'); // [add, edit, delete]
+			$table->string('stock_type', 20)->default('in')->index();
+			$table->string('action_type', 20)->default('add')->index(); // [add, edit, delete]
 			$table->bigInteger('created_by')->unsigned()->nullable();
 			$table->foreign('created_by')->references('id')->on('users')->onDelete('set null')->onUpdate('cascade');
 			$table->timestamps();

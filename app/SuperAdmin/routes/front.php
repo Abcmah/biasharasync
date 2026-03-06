@@ -21,7 +21,12 @@ Route::group(['namespace' => 'Front'], function () {
         Route::get('/pricing', ['as' => 'front.pricing', 'uses' => 'HomeController@pricing']);
         Route::get('/contact', ['as' => 'front.contact', 'uses' => 'HomeController@contact']);
         Route::get('/features', ['as' => 'front.features', 'uses' => 'HomeController@features']);
+        Route::get('/terms-and-conditions', ['as' => 'front.terms', 'uses' => 'HomeController@termsAndConditions']);
         Route::post('/call-to-action', ['as' => 'front.call-to-action', 'uses' => 'HomeController@callToAction']);
         Route::post('/change-language', ['as' => 'front.change-language', 'uses' => 'HomeController@changeLanguage']);
+
+        // Blog routes
+        Route::get('/blog', ['as' => 'front.blog.index', 'uses' => 'BlogController@index']);
+        Route::get('/blog/{slug}', ['as' => 'front.blog.show', 'uses' => 'BlogController@show']);
     });
 });

@@ -17,14 +17,14 @@ class CreatePaymentModesTable extends Migration
         Schema::create('payment_modes', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('mode_type')->nullable()->default('bank');
+            $table->string('short_code')->index();
+            $table->string('env')->default('sandbox');
+            $table->boolean('is_active')->default(true);
+            $table->json('credentials')->nullable();
+
             $table->timestamps();
         });
-
-        // if (app_type() == 'non-saas') {
-        //     DB::table('payment_modes')->insert([
-        //         'name' => 'Cash'
-        //     ]);
-        // }
     }
 
     /**

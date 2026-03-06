@@ -17,8 +17,9 @@ class CreateProductsTable extends Migration
 			$table->id();
 			$table->string('name', 1000);
 			$table->string('slug', 1000);
-			$table->string('barcode_symbology', 10);
-			$table->string('item_code');
+			$table->string('barcode_symbology', 10)->nullable();
+			$table->string('item_code')->nullable()->index();
+			$table->string('sku')->nullable()->index();
 			$table->string('image')->nullable()->default(NULL);
 			$table->bigInteger('category_id')->unsigned()->nullable();
 			$table->foreign('category_id')->references('id')->on('categories')->onDelete('set null')->onUpdate('cascade');

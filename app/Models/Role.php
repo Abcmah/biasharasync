@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
-use App\Scopes\CompanyScope;
+use App\Classes\Common;
 use BackedEnum;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Schema;
 use Laratrust\Checkers\CheckersManager;
 use Laratrust\Checkers\Role\RoleChecker;
 use Laratrust\Contracts\Role as RoleContract;
@@ -20,14 +22,12 @@ class Role extends BaseModel implements RoleContract
 {
     use HasLaratrustEvents;
     use DynamicUserRelationshipCalls;
-    // extends BaseModel implements RoleContract
-    protected  $table = 'roles';
+
+    protected $table = 'roles';
 
     protected $default = ['xid', 'id', 'name', 'display_name'];
 
     protected $guarded = ['id', 'created_at', 'updated_at'];
-
-    // protected $hidden = ['id'];
 
     protected $appends = ['xid'];
 
@@ -35,7 +35,19 @@ class Role extends BaseModel implements RoleContract
     {
         parent::boot();
 
-        static::addGlobalScope(new CompanyScope);
+        // Custom scope: show company-owned roles AND default roles (company_id = null)
+        static::addGlobalScope('company_with_defaults', function (Builder $builder) {
+            if (auth('api')->check() && Schema::hasColumn('roles', 'company_id')) {
+                $company = company();
+                if ($company) {
+                    $companyId = Common::getIdFromHash($company->xid);
+                    $builder->where(function ($query) use ($companyId) {
+                        $query->where('roles.company_id', $companyId)
+                              ->orWhereNull('roles.company_id');
+                    });
+                }
+            }
+        });
     }
 
     protected static function booted(): void
@@ -160,6 +172,19 @@ class Role extends BaseModel implements RoleContract
     public function flushCache(): void
     {
         $this->laratrustRoleChecker()->currentRoleFlushCache();
+    }
+
+    /**
+     * Default roles (company_id = null) are system-wide and cannot be modified or deleted.
+     */
+    public function isDefault(): bool
+    {
+        return is_null($this->company_id);
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function toArray()

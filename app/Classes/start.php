@@ -127,11 +127,11 @@ if (!function_exists('user')) {
 
         if ($user) {
             $user = $user->load([
-                'role' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+                'role' => fn($query) => $query->withoutGlobalScopes(),
                 'role.permissions',
-                'warehouse' => fn($query) => $query->withoutGlobalScope(CompanyScope::class)
+                'warehouse' => fn($query) => $query->withoutGlobalScopes()
                     ->where('company_id', $user->company_id),
-                'activeWarehouse' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+                'activeWarehouse' => fn($query) => $query->withoutGlobalScopes(),
                 'userWarehouses',
             ]);
 

@@ -28,19 +28,6 @@ class CreateUnitsTable extends Migration
             $table->timestamps();
         });
 
-        // if (app_type() == 'non-saas') {
-        //     $allUnits = Common::allUnits();
-
-        //     foreach ($allUnits as $allUnit) {
-        //         DB::table('units')->insert([
-        //             'name' => $allUnit['name'],
-        //             'short_name' => $allUnit['short_name'],
-        //             'operator' => $allUnit['operator'],
-        //             'operator_value' => $allUnit['operator_value'],
-        //             'is_deletable' => false,
-        //         ]);
-        //     }
-        // }
     }
 
     /**

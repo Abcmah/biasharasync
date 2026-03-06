@@ -2,18 +2,22 @@
 
 use Examyou\RestAPI\Facades\ApiRoute;
 use Illuminate\Support\Facades\Route;
-use Symfony\Component\HttpFoundation\Request;
+
+// Password reset link handler — redirects email link to Vue frontend
+Route::get('/process-reset-link', function (Illuminate\Http\Request $request) {
+    $token = $request->query('token');
+    $email = $request->query('email');
+
+    return redirect("/admin/reset-password?token={$token}&email={$email}");
+})->name('password.reset');
 
 // Admin Routes
 Route::post('api/v1/webhooks/mpesa/callback',
     [\App\Http\Controllers\Webhook\WebhookController::class, 'mpesaCallback']
 );
 ApiRoute::group(['namespace' => 'App\Http\Controllers\Api'], function () {
-    Route::get('auth/google/redirect',function(){
-        dd('fdfdf');
-    });
     ApiRoute::get('all-langs', ['as' => 'api.extra.all-langs', 'uses' => 'AuthController@allEnabledLangs']);
-    ApiRoute::get('pdf/{uniqueId}/{lang?}', ['as' => 'api.extra.pdf', 'uses' => 'AuthController@pdf']);
+
     ApiRoute::get('lang-trans', ['as' => 'api.extra.lang-trans', 'uses' => 'AuthController@langTrans']);
     ApiRoute::post('change-theme-mode', ['as' => 'api.extra.change-theme-mode', 'uses' => 'AuthController@changeThemeMode']);
     ApiRoute::get('default-walkin-customer', ['as' => 'api.extra.walkin-custome', 'uses' => 'AuthController@getDefaultWalkinCustomer']);
@@ -32,7 +36,7 @@ ApiRoute::group(['namespace' => 'App\Http\Controllers\Api'], function () {
     ApiRoute::get('payment-modes', ['as' => 'api.payment-modes.index',   'uses' => 'PaymentModeController@index']);
     ApiRoute::get('payment-providers', ['as' => 'api.payment-providers.index', 'uses' => 'PaymentProviderController@index']);
 
-    ApiRoute::group(['middleware' => ['api.auth.check']], function () {
+    ApiRoute::group(['middleware' => ['api.auth.check', 'api.company.check']], function () {
         ApiRoute::post('dashboard', ['as' => 'api.extra.dashboard', 'uses' => 'AuthController@dashboard']);
         ApiRoute::post('upload-file', ['as' => 'api.extra.upload-file', 'uses' => 'AuthController@uploadFile']);
         ApiRoute::post('profile', ['as' => 'api.extra.profile', 'uses' => 'AuthController@profile']);

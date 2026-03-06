@@ -1,7 +1,4 @@
-{{-- <script src="{{ asset('front/js/jQuery-3.6.1.min.js') }}"></script>
-<script src="{{ asset('front/js/owl.carousel.min.js') }}"></script> --}}
 <script src="{{ asset('front/js/inos.js') }}"></script>
-<script src="{{ asset('front/js/custom.js') }}"></script>
 
 <script>
     "use strict";
@@ -10,17 +7,30 @@
         var registerUrl = "{{ route('front.register') }}";
 
         art.sendXhr({
-            url: "{{route('front.call-to-action')}}",
+            url: "{{ route('front.call-to-action') }}",
             type: "POST",
             file: true,
             container: "#callToAction",
             disableButton: true,
             messageLocation: 'none',
             success: function(response) {
-                if(response.status == 'success'){
-                    var actionEmail = $('#action_email').val();
+                if (response.status == 'success') {
+                    var actionEmail = document.getElementById('action_email').value;
+                    window.location.href = registerUrl + '?email=' + encodeURIComponent(actionEmail);
+                }
+            }
+        });
+    }
 
-                    window.location.href = registerUrl + '?email=' + actionEmail;
+    function changeLang(langKey) {
+        art.sendXhr({
+            url: "{{ route('front.change-language') }}",
+            type: "POST",
+            data: { key: langKey },
+            container: "#ajax-register-form",
+            success: function(response) {
+                if (response.status == 'success') {
+                    window.location.reload();
                 }
             }
         });

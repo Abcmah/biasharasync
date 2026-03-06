@@ -48,18 +48,17 @@
                     <h3 class="form-heading-text">{{ $frontSetting->contact_form_title }}</h3>
                     <p class="form-sub-text">{{ $frontSetting->contact_form_description }}</p>
 
-                    <div id="alert" class="modern-alert-container"></div>
-
-                    {{ html()->form('POST', '')->id('ajax-contact-form')->open() }}
+                    {{ html()->form('POST', route('front.submit-contact-form'))->id('ajax-contact-form')->open() }}
+                        <div id="alert" class="modern-alert-container"></div>
                         <div class="form-grid-compact">
-                            <div class="input-group">
-                                <input class="modern-input" name="name" id="name" type="text" placeholder="{{ $frontSetting->contact_form_name_text }}" required>
+                            <div class="form-group">
+                                <input class="modern-input form-control" name="name" id="name" type="text" placeholder="{{ $frontSetting->contact_form_name_text }}" required>
                             </div>
-                            <div class="input-group">
-                                <input class="modern-input" name="email" id="email" type="email" placeholder="{{ $frontSetting->contact_form_email_text }}" required>
+                            <div class="form-group">
+                                <input class="modern-input form-control" name="email" id="email" type="email" placeholder="{{ $frontSetting->contact_form_email_text }}" required>
                             </div>
-                            <div class="input-group full-width">
-                                <textarea class="modern-textarea" name="message" id="message" rows="4" placeholder="{{ $frontSetting->contact_form_message_text }}" required></textarea>
+                            <div class="form-group full-width">
+                                <textarea class="modern-textarea form-control" name="message" id="message" rows="4" placeholder="{{ $frontSetting->contact_form_message_text }}" required></textarea>
                             </div>
                             <button class="contact-submit-btn" type="submit" onclick="updateContactForm();return false">
                                 {{ $frontSetting->contact_form_send_message_text }}
@@ -83,23 +82,23 @@
 
     function updateContactForm() {
         art.sendXhr({
-            url: '{{route('front.submit-contact-form')}}',
+            url: '{{ route('front.submit-contact-form') }}',
             type: "POST",
             file: true,
             container: "#ajax-contact-form",
             disableButton: true,
-            messageLocation: 'inline', // This targets the #alert div
+            messageLocation: 'inline',
             success: function(response) {
-                if(response.status == 'success'){
-                    // Optional: Fade out the form or clear it
-                    $('#ajax-contact-form')[0].reset();
-                    // Custom success message styling via JS if needed
-                    $('#alert').html('<div class="alert alert-success">✅ Your message has been sent successfully!</div>');
+                if (response.status == 'success') {
+                    var form = document.getElementById('ajax-contact-form');
+                    var alertDiv = document.getElementById('alert');
+                    if (form) form.reset();
+                    if (alertDiv) alertDiv.innerHTML = '<div class="alert alert-success">Your message has been sent successfully!</div>';
                 }
             },
             error: function(response) {
-                // Error handling
-                $('#alert').html('<div class="alert alert-danger">❌ Something went wrong. Please try again.</div>');
+                var alertDiv = document.getElementById('alert');
+                if (alertDiv) alertDiv.innerHTML = '<div class="alert alert-danger">Something went wrong. Please try again.</div>';
             }
         });
     }

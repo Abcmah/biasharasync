@@ -21,6 +21,7 @@ use App\Models\PaymentMode;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\Settings;
+use App\Models\StaffMember;
 use App\Models\Translation;
 use App\Models\User;
 use App\Models\UserWarehouse;
@@ -124,11 +125,28 @@ class AuthController extends ApiBaseController
         $warehouse = Warehouse::withoutGlobalScope(CompanyScope::class)->find($order->warehouse_id);
         $staffMember = StaffMember::withoutGlobalScope(CompanyScope::class)->find($order->staff_user_id);
 
+        $company = Company::with('currency')->find($order->company_id);
+
+
+        $logoDataUri = '';
+        if ($company) {
+            $logoPath = $company->light_logo
+                ? public_path('uploads/' . Common::getFolderPath('companyLogoPath') . '/' . $company->light_logo)
+                : public_path('images/light.png');
+
+            if (file_exists($logoPath)) {
+                $logoData = base64_encode(file_get_contents($logoPath));
+                $logoMime = mime_content_type($logoPath);
+                $logoDataUri = "data:{$logoMime};base64,{$logoData}";
+            }
+        }
+
         $pdfData = [
             'orderStatusText' => $orderStatusText,
             'paymentStatusText' => $paymentStatusText,
             'order' => $order,
-            'company' => Company::with('currency')->find($order->company_id),
+            'company' => $company,
+            'logoDataUri' => $logoDataUri,
             'dateTimeFormat' => 'd-m-Y',
             'traslations' => $invoiceTranslation,
             'warehouse' => $warehouse,
@@ -175,7 +193,7 @@ class AuthController extends ApiBaseController
 
         $response = $this->respondWithToken($token, $user);
         $addMenuSetting = Settings::where('setting_type', 'shortcut_menus')->first();
-        $response['app'] = $userCompany;
+        $response['app'] = company(true);
         $response['shortcut_menus'] = $addMenuSetting;
         $response['email_setting_verified'] = $this->emailSettingVerified();
         $response['visible_subscription_modules'] = Common::allVisibleSubscriptionModules();
@@ -185,15 +203,26 @@ class AuthController extends ApiBaseController
 
     protected function respondWithToken($token, $user)
     {
-        $companyId = $user->company_id;
-
         $user->load([
-            'role' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+            'role' => fn($query) => $query->withoutGlobalScopes(),
             'role.permissions',
             'userWarehouses',
-            'defaultWarehouse' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
-            'activeWarehouse' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+            'defaultWarehouse' => fn($query) => $query->withoutGlobalScopes(),
+            'activeWarehouse' => fn($query) => $query->withoutGlobalScopes(),
         ]);
+
+        // Ensure role_user pivot is in sync with role_id column.
+        // This handles users created before Laratrust was installed.
+        if ($user->role_id && $user->id) {
+            $pivotExists = DB::table('role_user')
+                ->where('user_id', $user->id)
+                ->where('role_id', $user->role_id)
+                ->exists();
+
+            if (!$pivotExists) {
+                $user->syncRoles([$user->role_id]);
+            }
+        }
 
         // Fallback: if role_id is null, resolve from role_user pivot
         if (!$user->role && $user->id) {
@@ -203,10 +232,11 @@ class AuthController extends ApiBaseController
 
             if ($roleId) {
                 $user->role_id = $roleId;
-                $role = Role::withoutGlobalScope(CompanyScope::class)
-                    ->with('permissions')
-                    ->find($roleId);
-                $user->setRelation('role', $role);
+                $user->save();
+                $user->load([
+                    'role' => fn($query) => $query->withoutGlobalScopes(),
+                    'role.permissions',
+                ]);
             }
         }
 
@@ -234,9 +264,9 @@ class AuthController extends ApiBaseController
         $user = auth('api')->user();
 
         $user->load([
-            'role' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+            'role' => fn($query) => $query->withoutGlobalScopes(),
             'role.permissions',
-            'warehouse' => fn($query) => $query->withoutGlobalScope(CompanyScope::class)
+            'warehouse' => fn($query) => $query->withoutGlobalScopes()
                 ->where('company_id', $user->company_id),
             'userWarehouses',
         ]);
@@ -267,15 +297,6 @@ class AuthController extends ApiBaseController
     {
         $user = auth('api')->user();
 
-        // In Demo Mode
-        // if (env('APP_ENV') == 'production') {
-        //     $request = request();
-
-        //     if ($request->email == 'admin@example.com' && $request->has('password') && $request->password != '') {
-        //         throw new ApiException('Not Allowed In Demo Mode');
-        //     }
-        // }
-
         $user->name = $request->name;
         if ($request->has('profile_image')) {
             $user->profile_image = $request->profile_image;
@@ -289,7 +310,7 @@ class AuthController extends ApiBaseController
 
         return ApiResponse::make('Profile updated successfull', [
             'user' => $user->load([
-                'role' => fn($query) => $query->withoutGlobalScope(CompanyScope::class),
+                'role' => fn($query) => $query->withoutGlobalScopes(),
                 'role.permissions',
                 'userWarehouses',
             ])
@@ -728,7 +749,9 @@ class AuthController extends ApiBaseController
 
         if ($user && $user->user_type == 'staff_members' && $request->has('warehouse_id') && $request->warehouse_id) {
             $requestedWarehouseId = Common::getIdFromHash($request->warehouse_id);
-            $isAuthorized = $user->hasRole('admin');
+
+            // Admin role has access to all warehouses
+            $isAuthorized = $user->role && $user->role->name === 'admin';
 
             if (!$isAuthorized) {
                 $isAuthorized = UserWarehouse::where('user_id', $user->id)
@@ -744,12 +767,11 @@ class AuthController extends ApiBaseController
         // Persist active warehouse in DB for stateless resolution
         User::where('id', $user->id)->update(['active_warehouse_id' => $warehouseId]);
 
-        $warehouse = Warehouse::withoutGlobalScope(CompanyScope::class)->find($warehouseId);
+        $warehouse = Warehouse::withoutGlobalScopes()->find($warehouseId);
 
         return ApiResponse::make('Success', [
             'status' => "success",
             'warehouse' => $warehouse,
-            'dsd'=>$warehouseId
         ]);
     }
 

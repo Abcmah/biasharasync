@@ -1,5 +1,5 @@
 @component('mail::message')
 
-    {!! clean($mailContent) !!}
+    {!! $mailContent !!}
 
 @endcomponent

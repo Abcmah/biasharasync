@@ -27,52 +27,6 @@ class CreateSettingsTable extends Migration
             $table->timestamps();
         });
 
-        if (app_type() == 'non-saas') {
-            DB::table('settings')->insert([
-                [
-                    'setting_type' => 'storage',
-                    'name' => 'Local',
-                    'name_key' => 'local',
-                    'credentials' => json_encode([]),
-                    'status' => 1,
-                ],
-                [
-                    'setting_type' => 'storage',
-                    'name' => 'AWS',
-                    'name_key' => 'aws',
-                    'credentials' => json_encode([
-                        'driver' => 's3',
-                        'key' => '',
-                        'secret' => '',
-                        'region' => '',
-                        'bucket' => '',
-                    ]),
-                    'status' => 0,
-                ],
-                [
-                    'setting_type' => 'email',
-                    'name' => 'SMTP',
-                    'name_key' => 'smtp',
-                    'credentials' => json_encode([
-                        'from_name' => '',
-                        'from_email' => '',
-                        'host' => '',
-                        'port' => '',
-                        'encryption' => '',
-                        'username' => '',
-                        'password' => '',
-                    ]),
-                    'status' => 0,
-                ],
-                [
-                    'setting_type' => 'send_mail_settings',
-                    'name' => 'Send mail to warehouse',
-                    'name_key' => 'warehouse',
-                    'credentials' => json_encode([]),
-                    'status' => 0,
-                ],
-            ]);
-        }
     }
 
     /**

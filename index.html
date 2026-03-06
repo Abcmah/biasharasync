@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BillTrack - Professional Billing & Inventory</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <header class="article-header-dome">
+    <div class="container" style="position: relative; z-index: 2;">
+        @if($blog->category)
+            <div class="article-category-badge">{{ $blog->category }}</div>
+        @endif
+        <h1 class="article-main-title">{{ $blog->title }}</h1>
+        <div class="article-meta-large">
+            <div class="meta-text">
+                <span class="author-name-single">{{ $blog->author_name ?: 'Admin' }}</span>
+                <span class="publish-date">Published on {{ $blog->published_at ? $blog->published_at->format('M d, Y') : $blog->created_at->format('M d, Y') }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+
     <style>
         :root {
             --primary: #2563eb;

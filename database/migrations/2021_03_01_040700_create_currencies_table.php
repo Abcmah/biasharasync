@@ -24,25 +24,6 @@ class CreateCurrenciesTable extends Migration
             $table->timestamps();
         });
 
-        // Creating only for non-saas
-        // if (app_type() == 'non-saas') {
-        //     DB::table('currencies')->insert([
-        //         [
-        //             'name' => 'Dollar',
-        //             'code' => 'USD',
-        //             'symbol' => '$',
-        //             'position' => 'front',
-        //             'is_deletable' => false,
-        //         ],
-        //         [
-        //             'name' => 'Rupee',
-        //             'code' => 'INR',
-        //             'symbol' => '₹',
-        //             'position' => 'front',
-        //             'is_deletable' => false,
-        //         ],
-        //     ]);
-        // }
     }
 
     /**

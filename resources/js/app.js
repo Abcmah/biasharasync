@@ -81,6 +81,11 @@ async function bootstrap() {
             store.commit("front/updateApp", window.config.frontStoreSettings);
         }
         app.mount("#app");
+
+        // Signal preloader that Vue is fully mounted
+        if (typeof window.__appReady === 'function') {
+            window.__appReady();
+        }
     })
 }
 

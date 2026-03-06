@@ -211,6 +211,14 @@ class HomeController extends FrontBaseController
         return view('front.page', $this->data);
     }
 
+    public function termsAndConditions()
+    {
+        $this->showFullHeader = false;
+        $this->breadcrumbTitle = 'Terms & Conditions';
+
+        return view('front.terms-and-conditions', $this->data);
+    }
+
     public function register(Request $request)
     {
         // dd($request);
@@ -234,7 +242,7 @@ class HomeController extends FrontBaseController
         return view('front.register', $this->data);
     }
 
-        public function saveRegister(Request $request)
+    public function saveRegister(Request $request)
     {
 
         DB::beginTransaction();
@@ -275,7 +283,7 @@ class HomeController extends FrontBaseController
 
             $mailSetting = GlobalSettings::where('setting_type', 'email')->where('status', 1)->where('verified', 1)->first();
             if ($mailSetting) {
-                // $message = $this->frontTranslations['register_thank_you'] . ' <a href="' . route('main', 'admin/login') . '">' . $this->frontTranslations['login'] . '</a>.';
+
 
                 $globalCompany = GlobalCompany::first();
                 $notficationData = [
@@ -297,87 +305,7 @@ class HomeController extends FrontBaseController
                     <td><p>Name : </p></td>
                     <td><p>' . $admin->email . '</p></td>
                 </tr>
-                <tr>
-                    <td><p>Password : </p></td>
-                    <td><p>' . $request->password . '</p></td>
-                </tr>
-        </tbody>
-</table><br>';
-
-                Notification::route('mail', $admin->email)->notify(new ContactUsEmail($templateSubject, $userMailContent));
-            }
-
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollback();
-            return Output::error($e->getMessage());
-        }
-
-        return Output::success($this->frontSetting->register_success_text);
-    }
-    public function saveRegisterdd(StoreRegisterRequest $request)
-    {
-        DB::beginTransaction();
-        try {
-            $company = Company::create([
-                'name' => $request->company_name,
-                'short_name' => Str::lower($request->company_name),
-                'email' => $request->company_email,
-                'phone' => $request->company_phone,
-                'total_users' => 1,
-                'is_global' => 0,
-            ]);
-
-            $admin = new StaffMember();
-            $admin->company_id = $company->id;
-            $admin->name = 'Admin';
-            $admin->email = $request->company_email;
-            $admin->phone = $request->company_phone;
-            $admin->password = $request->password;
-            $admin->user_type = 'staff_members';
-            $admin->email_verification_code = Str::random(50);
-            $admin->status = 'enabled';
-            $admin->save();
-
-            $adminRole = Role::firstOrCreate(
-                ['name' => 'admin'],
-                ['display_name' => 'Admin']
-            );
-
-            $admin->role_id = $adminRole->id;
-            $admin->save();
-
-            $admin->addRole($adminRole, $company->id);
-
-            $company->admin_id = $admin->id;
-            $company->save();
-
-            $mailSetting = GlobalSettings::where('setting_type', 'email')->where('status', 1)->where('verified', 1)->first();
-            if ($mailSetting) {
-                $globalCompany = GlobalCompany::first();
-                $notficationData = [
-                    'company' => $company,
-                    'user' => $admin,
-                ];
-                Notification::route('mail', $globalCompany->email)->notify(new NewUserRegistered($notficationData));
-
-                // Sending to user
-                $templateSubject = 'Registration Successful';
-                $userMailContent = '<p>Hello,</p>
-                <p>Thanks for registration... please check login details</p>
-                <table><tbody style="color:#0000009c;">
-                <tr>
-                    <td><p>App Url : </p></td>
-                    <td><p>' . url('/') . '/admin/login</p></td>
-                </tr>
-                <tr>
-                    <td><p>Name : </p></td>
-                    <td><p>' . $admin->email . '</p></td>
-                </tr>
-                <tr>
-                    <td><p>Password : </p></td>
-                    <td><p>' . $request->password . '</p></td>
-                </tr>
+              
         </tbody>
 </table><br>';
 

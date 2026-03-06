@@ -2,7 +2,7 @@ import { reactive } from "vue";
 import { useI18n } from "vue-i18n";
 
 const fields = () => {
-	const url = "roles?fields=id,xid,name,display_name,description,perms.limit(10000)";
+	const url = "roles?fields=id,xid,name,display_name,description,company_id,permissions.limit(10000)";
 	const addEditUrl = "roles";
 	const { t } = useI18n();
 

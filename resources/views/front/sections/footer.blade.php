@@ -2,24 +2,24 @@
     <div class="footer-container">
         <div class="footer-grid">
             <div class="footer-col brand-info">
-                <div style="width: 200px" class="footer-logo-wrapper">
-                    <img style="width: 100%" src="{{ $frontSetting->footer_logo_url }}" alt="Logo" class="footer-dynamic-logo">
+                <div class="footer-logo-wrapper">
+                    <img src="{{ $frontSetting->footer_logo_url }}" alt="{{ $frontSetting->app_name }}" class="footer-dynamic-logo">
                 </div>
                 <p class="footer-about">
                     {{ $frontSetting->footer_description }}
                 </p>
                 <div class="footer-socials">
-                    @if($frontSetting->twitter_url)
-                        <a href="{{ $frontSetting->twitter_url }}" class="social-link"><i class="bi bi-facebook"></i></a>
-                    @endif
                     @if($frontSetting->facebook_url)
-                        <a href="{{ $frontSetting->facebook_url }}" class="social-link">Fb</a>
+                        <a href="{{ $frontSetting->facebook_url }}" class="social-link" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                    @endif
+                    @if($frontSetting->twitter_url)
+                        <a href="{{ $frontSetting->twitter_url }}" class="social-link" aria-label="Twitter"><i class="bi bi-twitter-x"></i></a>
                     @endif
                     @if($frontSetting->linkedin_url)
-                        <a href="{{ $frontSetting->linkedin_url }}" class="social-link">In</a>
+                        <a href="{{ $frontSetting->linkedin_url }}" class="social-link" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
                     @endif
                     @if($frontSetting->instagram_url)
-                        <a href="{{ $frontSetting->instagram_url }}" class="social-link">Ig</a>
+                        <a href="{{ $frontSetting->instagram_url }}" class="social-link" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
                     @endif
                 </div>
             </div>
@@ -31,6 +31,8 @@
                     <li><a href="{{ route('front.features') }}">{{ $frontSetting->features_text }}</a></li>
                     <li><a href="{{ route('front.pricing') }}">{{ $frontSetting->pricing_text }}</a></li>
                     <li><a href="{{ route('front.contact') }}">{{ $frontSetting->contact_text }}</a></li>
+                    <li><a href="{{ route('front.blog.index') }}">Blog</a></li>
+                    <li><a href="{{ route('front.terms') }}">Terms & Conditions</a></li>
                 </ul>
             </div>
 
@@ -61,8 +63,10 @@
         <div class="footer-bottom">
             <p>{{ $frontSetting->footer_copyright_text }}</p>
             <div class="footer-legal">
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms of Service</a>
+                <a href="{{ route('front.terms') }}">Terms & Conditions</a>
+                @foreach($footerPages as $footerPage)
+                    <a href="{{ route('front.page', $footerPage->slug) }}">{{ $footerPage->title }}</a>
+                @endforeach
             </div>
         </div>
     </div>

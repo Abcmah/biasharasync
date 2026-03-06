@@ -7,7 +7,7 @@
                         :lg="{ span: 16, offset: 4 }">
 
                         <a-card :bordered="innerWidth <= 768 ? true : false">
-                            <a-form layout="vertical">
+                            <a-form class="modern-form" layout="vertical">
                                 <div class="login-logo mb-30">
                                     <img class="login-img-logo" :src="globalSetting.light_logo_url" />
                                 </div>
@@ -20,12 +20,12 @@
                                 <a-form-item :label="$t('user.email_phone')" name="email"
                                     :help="rules.email ? rules.email.message : null"
                                     :validateStatus="rules.email ? 'error' : null">
-                                    <a-input v-model:value="credentials.email" @pressEnter="onSubmit"
+                                    <a-input size="large" v-model:value="credentials.email" @pressEnter="onSubmit"
                                         :placeholder="$t('common.placeholder_default_text', [$t('user.email_phone')])" />
                                 </a-form-item>
 
                                 <a-form-item>
-                                    <a-button :loading="loading" @click="onSubmit" class="login-btn" block
+                                    <a-button size="large" :loading="loading" @click="onSubmit" class="login-btn" block
                                         type="primary">
                                         {{ $t("menu.reset") }}
                                     </a-button>
@@ -122,7 +122,12 @@ export default defineComponent({
     background: #fff;
     height: 100vh;
 }
-
+.modern-form {
+    .ant-input-affix-wrapper, .ant-input {
+        padding: 10px 15px;
+        border-radius: 8px;
+    }
+}
 .main-container-div {
     height: 100%;
 }
